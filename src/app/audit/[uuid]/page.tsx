@@ -6,7 +6,6 @@ import { AuditResults } from '@/components/AuditResults';
 import { LeadCapture } from '@/components/LeadCapture';
 import type { AuditResult } from '@/types';
 
-// Use the anon key for read-only public data (audits have no PII)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -17,16 +16,45 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps) {
+  const { data } = await supabase
+    .from('audits')
+    .select('total_monthly_savings, total_annual_savings, ai_summary')
+    .eq('uuid', params.uuid)
+    .single();
+
+  const monthly = data?.total_monthly_savings ?? 0;
+  const annual = data?.total_annual_savings ?? 0;
+  const title = monthly > 0
+    ? `I could save $${Math.round(monthly)}/mo on AI tools — SpendLens`
+    : 'My AI Spend Audit — SpendLens';
+  const description = monthly > 0
+    ? `SpendLens found $${Math.round(monthly)}/month ($${Math.round(annual)}/year) in AI subscription savings. See the full breakdown.`
+    : data?.ai_summary ?? 'Free AI spend audit. See exactly where your budget is leaking.';
+
+  const ogImageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/og?monthly=${monthly}&annual=${annual}`;
+
   return {
-    title: 'Your AI Spend Audit — SpendLens',
-    description: 'See exactly where your AI budget is leaking and how much you can save.',
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImageUrl],
+    },
   };
 }
 
 export default async function AuditPage({ params }: PageProps) {
   const { data, error } = await supabase
     .from('audits')
-    .select('audit_result, total_monthly_savings, total_annual_savings')
+    .select('audit_result, total_monthly_savings, total_annual_savings, ai_summary')
     .eq('uuid', params.uuid)
     .single();
 
@@ -35,6 +63,7 @@ export default async function AuditPage({ params }: PageProps) {
   }
 
   const result = data.audit_result as AuditResult;
+  const aiSummary = (data.ai_summary as string | null) ?? undefined;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -50,7 +79,7 @@ export default async function AuditPage({ params }: PageProps) {
         </div>
 
         {/* Core results */}
-        <AuditResults result={result} />
+        <AuditResults result={result} aiSummary={aiSummary} />
 
         {/* Lead capture */}
         <LeadCapture auditUuid={params.uuid} isHighSavings={result.isHighSavings} />

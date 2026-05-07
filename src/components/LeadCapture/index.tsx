@@ -14,6 +14,8 @@ const schema = z.object({
   email: z.string().email('Please enter a valid email address'),
   companyName: z.string().min(1, 'Required').max(120),
   role: z.string().min(1, 'Required').max(80),
+  // honeypot — must be empty. Hidden from real users via CSS.
+  website: z.string().max(0, 'Bot detected'),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -31,15 +33,24 @@ export function LeadCapture({ auditUuid, isHighSavings }: LeadCaptureProps) {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { website: '' } });
 
   const onSubmit = async (values: FormValues) => {
+    // Double-check honeypot client-side before even hitting the server
+    if (values.website) return;
+
     setServerError(null);
     try {
       const res = await fetch('/api/lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...values, auditUuid, isHighSavings }),
+        body: JSON.stringify({
+          email: values.email,
+          companyName: values.companyName,
+          role: values.role,
+          auditUuid,
+          isHighSavings,
+        }),
       });
       if (!res.ok) throw new Error('server');
       setSubmitted(true);
@@ -55,7 +66,9 @@ export function LeadCapture({ auditUuid, isHighSavings }: LeadCaptureProps) {
           <CheckCircle2 className="h-10 w-10 text-emerald-600" />
           <h3 className="font-semibold text-lg text-emerald-800">You&apos;re on the list!</h3>
           <p className="text-sm text-emerald-700 max-w-xs">
-            We&apos;ll send your full audit report and notify you when SpendLens Pro launches.
+            {isHighSavings
+              ? "We'll send your full savings roadmap and a Credex consultant will reach out within 24 hours."
+              : "We'll notify you when new optimisations apply to your stack."}
           </p>
         </CardContent>
       </Card>
@@ -70,18 +83,24 @@ export function LeadCapture({ auditUuid, isHighSavings }: LeadCaptureProps) {
           <CardTitle className="text-lg">
             {isHighSavings
               ? 'Get your full savings roadmap — free'
-              : 'Save your audit report'}
+              : 'Save your audit & get notified of new optimisations'}
           </CardTitle>
         </div>
         <CardDescription>
           {isHighSavings
-            ? 'Based on your spend, we can build a custom 30-day savings plan. Enter your email to receive it.'
-            : 'Enter your details to receive a PDF copy of your audit and stay updated on new optimisations.'}
+            ? "We'll send a detailed action plan and loop in a Credex advisor for high-value opportunities."
+            : "Enter your details to receive a copy of this audit and get notified when better options emerge for your stack."}
         </CardDescription>
       </CardHeader>
 
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          {/* Honeypot — hidden from real users, bots fill it */}
+          <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }}>
+            <Label htmlFor="lc-website">Website</Label>
+            <Input id="lc-website" type="text" tabIndex={-1} autoComplete="off" {...register('website')} />
+          </div>
+
           {/* Email */}
           <div className="space-y-1.5">
             <Label htmlFor="lc-email">Work email</Label>
@@ -94,21 +113,14 @@ export function LeadCapture({ auditUuid, isHighSavings }: LeadCaptureProps) {
               {...register('email')}
             />
             {errors.email && (
-              <p id="lc-email-err" className="text-xs text-destructive">
-                {errors.email.message}
-              </p>
+              <p id="lc-email-err" className="text-xs text-destructive">{errors.email.message}</p>
             )}
           </div>
 
           {/* Company */}
           <div className="space-y-1.5">
             <Label htmlFor="lc-company">Company name</Label>
-            <Input
-              id="lc-company"
-              type="text"
-              placeholder="Acme Inc."
-              {...register('companyName')}
-            />
+            <Input id="lc-company" type="text" placeholder="Acme Inc." {...register('companyName')} />
             {errors.companyName && (
               <p className="text-xs text-destructive">{errors.companyName.message}</p>
             )}
@@ -117,12 +129,7 @@ export function LeadCapture({ auditUuid, isHighSavings }: LeadCaptureProps) {
           {/* Role */}
           <div className="space-y-1.5">
             <Label htmlFor="lc-role">Your role</Label>
-            <Input
-              id="lc-role"
-              type="text"
-              placeholder="CTO, Engineering Lead, Founder…"
-              {...register('role')}
-            />
+            <Input id="lc-role" type="text" placeholder="CTO, Engineering Lead, Founder…" {...register('role')} />
             {errors.role && (
               <p className="text-xs text-destructive">{errors.role.message}</p>
             )}
