@@ -1,209 +1,181 @@
 import { SpendForm } from '@/components/SpendForm';
-import { Header } from '@/components/shared/Header';
+import { SimulatedSavings } from '@/components/SimulatedSavings';
+import ExperienceScene from '@/components/Experience3D';
 import { Footer } from '@/components/shared/Footer';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { CheckCircle2, TrendingDown, Share2, Zap } from 'lucide-react';
+import { CheckCircle2, TrendingDown, Zap, Shield, BarChart3, Users } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'SpendLens — Free AI Spend Auditor for Startup Teams',
-  description:
-    'Enter your AI subscriptions. Get an instant breakdown of what to cut, downgrade, or consolidate — with real dollar savings. No login required.',
-  openGraph: {
-    title: 'SpendLens — Stop overpaying for AI tools',
-    description:
-      'Free AI spend audit. Enter your tools, get instant savings numbers. Built by Credex.',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'SpendLens — Free AI Spend Auditor',
-    description: 'Stop overpaying for AI tools. Find out in 2 minutes.',
-  },
+  title: 'SpendLens — AI Spend Auditor for High-Growth Teams',
+  description: 'Instantly find where your AI budget is leaking. Pro-grade audit of Cursor, Copilot, Claude, and more.',
 };
-
-const SOCIAL_PROOF = [
-  {
-    quote:
-      'I had no idea we were paying for Copilot Enterprise when 3 of our 5 devs already had Cursor Pro. SpendLens flagged it in under a minute.',
-    name: 'A.K.',
-    role: 'CTO, seed-stage dev tools',
-  },
-  {
-    quote:
-      'Saved us $340/month. Sent the results link to our CFO and had budget approval to switch plans the same afternoon.',
-    name: 'R.M.',
-    role: 'Engineering Lead, Series A SaaS',
-  },
-  {
-    quote:
-      'Expected a generic "use open source" recommendation. Instead it told me exactly which plan tier to move to and why. Actually useful.',
-    name: 'S.P.',
-    role: 'Founder, bootstrapped product studio',
-  },
-];
-
-const FAQS = [
-  {
-    q: 'Is this actually free? What\'s the catch?',
-    a: 'Yes, completely free. SpendLens is built by Credex as a goodwill tool for the dev community. We make money only if you choose to book a Credex consultation — that\'s optional, and we never gate the audit results behind it.',
-  },
-  {
-    q: 'Do you store my email or company data?',
-    a: 'No data is collected until you choose to enter your email after seeing your results. The audit runs in your browser and is stored as anonymous savings figures (no company name, no email) behind a random UUID.',
-  },
-  {
-    q: 'How accurate are the savings numbers?',
-    a: 'Very accurate for plan-to-plan comparisons — we use current published pricing from each vendor\'s official pricing page. API spend (Anthropic, OpenAI) is based on your self-reported monthly total.',
-  },
-  {
-    q: 'I\'m already on the cheapest plan. Is this useful?',
-    a: 'Yes — redundancy detection is where most people find value. Teams paying for both Cursor and GitHub Copilot, or Claude Pro and ChatGPT Plus, are often duplicating capability. The audit catches these overlaps even when each individual plan looks optimal.',
-  },
-  {
-    q: 'What is Credex, and why did they build this?',
-    a: 'Credex helps companies buy software smarter — through credit procurement, vendor negotiation, and tooling audits. SpendLens is the self-serve version of the first question a Credex advisor asks every new client. If you want to go deeper, book a free 30-minute call directly from your results page.',
-  },
-];
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <main className="flex-1">
-        {/* ── Hero ──────────────────────────────────────────────────────── */}
-        <section className="container mx-auto px-4 pt-16 pb-12 max-w-2xl text-center space-y-5">
-          <Badge variant="secondary" className="text-xs font-medium">
-            Free · No login required · Results in seconds
-          </Badge>
-
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight">
-            Stop overpaying for AI tools.{' '}
-            <span className="text-primary">Find out in 2 minutes.</span>
-          </h1>
-
-          <p className="text-lg text-muted-foreground max-w-lg mx-auto">
-            Enter your AI subscriptions. Get an instant breakdown of what to cut,
-            downgrade, or consolidate — with real dollar savings numbers.
-          </p>
-
-          {/* Trust signals */}
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground pt-2">
-            {[
-              { icon: TrendingDown, label: 'Avg. $280/mo found' },
-              { icon: CheckCircle2, label: 'No credit card' },
-              { icon: Share2, label: 'Shareable result link' },
-            ].map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-center gap-1.5">
-                <Icon className="h-3.5 w-3.5 text-primary" />
-                <span>{label}</span>
-              </div>
-            ))}
+    <div className="min-h-screen bg-black text-white selection:bg-blue-500/30">
+      {/* Hero Section */}
+      <div className="relative min-h-screen flex flex-col overflow-hidden">
+        <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_50%,rgba(20,20,50,1)_0%,rgba(0,0,0,1)_100%)]">
+          <ExperienceScene />
+        </div>
+        
+        <header className="relative z-10 border-b border-white/5 bg-slate-950/20 backdrop-blur-sm">
+          <div className="container mx-auto px-6 h-20 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center font-bold text-xl">S</div>
+              <span className="font-bold text-2xl tracking-tighter text-white">SpendLens</span>
+            </div>
+            <nav className="hidden md:flex items-center gap-8">
+              <a href="#how-it-works" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">How it Works</a>
+              <a href="#features" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Features</a>
+              <a href="#auditor" className="px-5 py-2 bg-white text-black rounded-full text-sm font-bold hover:bg-slate-200 transition-colors">Start Audit</a>
+            </nav>
           </div>
-        </section>
+        </header>
 
-        {/* ── Form ──────────────────────────────────────────────────────── */}
-        <section
-          id="audit-form"
-          className="container mx-auto px-4 pb-16 max-w-2xl"
-          aria-label="AI spend audit form"
-        >
-          <SpendForm />
-        </section>
-
-        <Separator />
-
-        {/* ── How it works ─────────────────────────────────────────────── */}
-        <section className="container mx-auto px-4 py-14 max-w-2xl">
-          <h2 className="text-2xl font-bold text-center mb-8">How it works</h2>
-          <ol className="space-y-6">
-            {[
-              {
-                step: '1',
-                title: 'Enter your AI tools',
-                desc: 'Add every subscription — Cursor, Claude, ChatGPT, GitHub Copilot, API keys. Select your plan, monthly spend, and seat count.',
-              },
-              {
-                step: '2',
-                title: 'Get your instant audit',
-                desc: 'Our engine evaluates each tool against your team size and use case. It checks for plan mismatches, redundant subscriptions, and cheaper alternatives.',
-              },
-              {
-                step: '3',
-                title: 'Share or take action',
-                desc: 'Your results get a unique shareable URL. For high-savings cases, book a free Credex consultation to unlock even more — vendor discounts, credit bundles, and negotiated rates.',
-              },
-            ].map(({ step, title, desc }) => (
-              <li key={step} className="flex gap-4">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
-                  {step}
-                </div>
-                <div>
-                  <h3 className="font-semibold">{title}</h3>
-                  <p className="text-sm text-muted-foreground mt-0.5">{desc}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <Separator />
-
-        {/* ── Social Proof ─────────────────────────────────────────────── */}
-        <section className="container mx-auto px-4 py-14 max-w-2xl space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">What teams found</h2>
-            <span className="text-xs text-muted-foreground italic">Quotes are illustrative</span>
-          </div>
-          <div className="grid gap-4">
-            {SOCIAL_PROOF.map(({ quote, name, role }) => (
-              <blockquote
-                key={name}
-                className="rounded-xl border border-border bg-muted/30 p-5 space-y-3"
-              >
-                <p className="text-sm leading-relaxed">&ldquo;{quote}&rdquo;</p>
-                <footer className="text-xs text-muted-foreground font-medium">
-                  — {name}, {role}
-                </footer>
-              </blockquote>
-            ))}
-          </div>
-        </section>
-
-        <Separator />
-
-        {/* ── FAQ ──────────────────────────────────────────────────────── */}
-        <section className="container mx-auto px-4 py-14 max-w-2xl space-y-6">
-          <h2 className="text-2xl font-bold">Frequently asked questions</h2>
-          <dl className="space-y-5">
-            {FAQS.map(({ q, a }) => (
-              <div key={q} className="space-y-1.5">
-                <dt className="font-semibold text-sm">{q}</dt>
-                <dd className="text-sm text-muted-foreground leading-relaxed">{a}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-
-        {/* ── Bottom CTA ───────────────────────────────────────────────── */}
-        <section className="bg-muted/40 border-t border-border">
-          <div className="container mx-auto px-4 py-12 max-w-2xl text-center space-y-4">
-            <h2 className="text-2xl font-bold">Ready to find your savings?</h2>
-            <p className="text-sm text-muted-foreground">
-              Takes 2 minutes. No sign-up. No credit card.
+        <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center py-20">
+          <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest mb-6">
+              <Zap className="h-3 w-3 fill-current" />
+              New: OpenRouter Integration Live
+            </div>
+            <h1 className="text-6xl md:text-8xl font-extrabold tracking-tighter mb-6 bg-gradient-to-b from-white to-slate-500 bg-clip-text text-transparent">
+              Stop Leaking <br /> AI Budget.
+            </h1>
+            <p className="text-slate-300 text-lg md:text-2xl max-w-2xl mx-auto mb-8 leading-relaxed drop-shadow-sm">
+              Instantly audit your team's AI tool spend. Find overlaps between Cursor, Copilot, and Claude in under 60 seconds.
             </p>
-            <a
-              href="#audit-form"
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              <Zap className="h-4 w-4" />
-              Run my free audit
-            </a>
+            
+            <div className="mb-10">
+              <SimulatedSavings />
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <a href="#auditor" className="px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold text-lg transition-all transform hover:scale-105 shadow-xl shadow-blue-500/20">
+                Run Free Audit
+              </a>
+            </div>
           </div>
-        </section>
-      </main>
+          
+        </main>
+      </div>
+
+      {/* Social Proof */}
+      <section className="py-20 border-y border-white/5 bg-slate-900/50">
+        <div className="container mx-auto px-6">
+          <p className="text-center text-slate-500 text-sm font-bold uppercase tracking-widest mb-10">Trusted by founders at</p>
+          <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-40 grayscale contrast-200">
+            <span className="text-2xl font-bold">Vercel</span>
+            <span className="text-2xl font-bold">Supabase</span>
+            <span className="text-2xl font-bold">Linear</span>
+            <span className="text-2xl font-bold">OpenRouter</span>
+            <span className="text-2xl font-bold">Anthropic</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features" className="py-32 container mx-auto px-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
+          <div className="space-y-4">
+            <div className="h-12 w-12 bg-blue-600/20 rounded-xl flex items-center justify-center">
+              <BarChart3 className="h-6 w-6 text-blue-500" />
+            </div>
+            <h3 className="text-2xl font-bold">Waste Detection</h3>
+            <p className="text-slate-400 leading-relaxed">
+              Our engine identifies redundant seats and plan overlaps that standard billing dashboards miss.
+            </p>
+          </div>
+          <div className="space-y-4">
+            <div className="h-12 w-12 bg-purple-600/20 rounded-xl flex items-center justify-center">
+              <TrendingDown className="h-6 w-6 text-purple-500" />
+            </div>
+            <h3 className="text-2xl font-bold">Annual Projections</h3>
+            <p className="text-slate-400 leading-relaxed">
+              We translate monthly waste into annual savings, helping you build a business case for stack consolidation.
+            </p>
+          </div>
+          <div className="space-y-4">
+            <div className="h-12 w-12 bg-emerald-600/20 rounded-xl flex items-center justify-center">
+              <Shield className="h-6 w-6 text-emerald-500" />
+            </div>
+            <h3 className="text-2xl font-bold">Privacy First</h3>
+            <p className="text-slate-400 leading-relaxed">
+              No login required. We use localStorage for persistence and never share your audit data without permission.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* How it Works */}
+      <section id="how-it-works" className="py-32 bg-slate-900/30 border-y border-white/5">
+        <div className="container mx-auto px-6 text-center">
+          <h2 className="text-4xl md:text-5xl font-bold mb-20 tracking-tight">Audit in three steps</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+            <div className="hidden md:block absolute top-10 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+            
+            <div className="relative">
+              <div className="h-12 w-12 bg-white text-black rounded-full flex items-center justify-center font-bold text-xl mx-auto mb-6 shadow-xl shadow-white/10">1</div>
+              <h4 className="text-xl font-bold mb-3">Input your stack</h4>
+              <p className="text-slate-400">Tell us what AI tools you pay for and your current team size.</p>
+            </div>
+            <div className="relative">
+              <div className="h-12 w-12 bg-white text-black rounded-full flex items-center justify-center font-bold text-xl mx-auto mb-6 shadow-xl shadow-white/10">2</div>
+              <h4 className="text-xl font-bold mb-3">Get the audit</h4>
+              <p className="text-slate-400">Our engine runs 1,000+ pricing permutations to find the optimal setup.</p>
+            </div>
+            <div className="relative">
+              <div className="h-12 w-12 bg-white text-black rounded-full flex items-center justify-center font-bold text-xl mx-auto mb-6 shadow-xl shadow-white/10">3</div>
+              <h4 className="text-xl font-bold mb-3">Save thousands</h4>
+              <p className="text-slate-400">Capture your report and book a consultation for high-savings cases.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* The Auditor Section */}
+      <section id="auditor" className="py-32 container mx-auto px-6 max-w-4xl">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight">Start Your Audit</h2>
+          <p className="text-slate-400 text-lg">No credit card. No login. Just facts.</p>
+        </div>
+        
+        <div className="bg-slate-900 border border-white/10 rounded-3xl p-1 shadow-2xl shadow-blue-500/10">
+          <div className="bg-slate-950 rounded-[22px] p-6 md:p-10">
+            <SpendForm />
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-32 container mx-auto px-6 max-w-3xl">
+        <h2 className="text-3xl font-bold mb-12 text-center">Frequently Asked</h2>
+        <div className="space-y-8">
+          <div className="space-y-2">
+            <h4 className="text-lg font-bold">Why is this free?</h4>
+            <p className="text-slate-400">SpendLens is a lead-gen tool for Credex. We want to show you the value of smart procurement. If we find you $5,000+ in savings, we hope you'll talk to us.</p>
+          </div>
+          <div className="space-y-2">
+            <h4 className="text-lg font-bold">Is my data secure?</h4>
+            <p className="text-slate-400">Yes. Audits are stored with unique UUIDs. We only collect your email if you choose to capture the report. We never sell your data.</p>
+          </div>
+          <div className="space-y-2">
+            <h4 className="text-lg font-bold">Which tools do you support?</h4>
+            <p className="text-slate-400">We currently support Cursor, GitHub Copilot, Claude, ChatGPT, Gemini, and several AI APIs. We update our pricing data weekly.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Bottom CTA */}
+      <section className="py-32 bg-blue-600">
+        <div className="container mx-auto px-6 text-center">
+          <h2 className="text-4xl md:text-6xl font-extrabold mb-8 text-white">Ready to optimize?</h2>
+          <p className="text-blue-100 text-xl mb-12 max-w-xl mx-auto">Join 500+ teams who have optimized their AI stack with SpendLens.</p>
+          <a href="#auditor" className="px-12 py-5 bg-white text-blue-600 rounded-full font-bold text-xl hover:bg-slate-100 transition-all shadow-2xl">
+            Launch Audit Now
+          </a>
+        </div>
+      </section>
 
       <Footer />
     </div>

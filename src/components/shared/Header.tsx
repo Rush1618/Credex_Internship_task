@@ -1,6 +1,7 @@
 // Header.tsx
 import Link from 'next/link';
 import { Zap } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 
 export function Header() {
   return (
@@ -10,14 +11,17 @@ export function Header() {
           <Zap className="h-4 w-4 text-primary" />
           SpendLens
         </Link>
-        <a
-          href="https://credex.rocks"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Powered by Credex
-        </a>
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          <a
+            href="https://credex.rocks"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
+          >
+            Powered by Credex
+          </a>
+        </div>
       </div>
     </header>
   );

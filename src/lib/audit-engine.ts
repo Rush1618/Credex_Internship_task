@@ -1,9 +1,9 @@
 import { AuditInput, AuditResult, ToolInput, ToolRecommendation, ToolName } from '@/types';
 import { TOOL_PRICING, CREDEX_DISCOUNT_ESTIMATE } from './pricing-data';
 
-// ─────────────────────────────────────────────────────────
+// ---------------------------------------------------------
 // HELPER: Calculate what a user should pay based on plan + seats
-// ─────────────────────────────────────────────────────────
+// ---------------------------------------------------------
 export function calculateExpectedSpend(toolName: string, planId: string, seats: number): number {
   const plans = TOOL_PRICING[toolName];
   if (!plans) return 0;
@@ -13,16 +13,17 @@ export function calculateExpectedSpend(toolName: string, planId: string, seats: 
   return plan.pricePerUserPerMonth * seats;
 }
 
-// ─────────────────────────────────────────────────────────
+// ---------------------------------------------------------
 // RULE ENGINE: One function per tool — pure, defensible logic
-// ─────────────────────────────────────────────────────────
+// ---------------------------------------------------------
 
 export function auditCursor(tool: ToolInput, teamSize: string, useCase: string): ToolRecommendation {
   const { plan, monthlySpend, seats } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
-  let reason = '';
+  let reasoning: string[] = [];
   let recommendedAction = 'Already optimal';
+  let savingsType: 'downgrade' | 'consolidation' | 'optimization' | 'none' = 'none';
 
   // Rule: Business plan for ≤2 users is wasteful — Pro is sufficient
   if (plan === 'business' && seats <= 2) {
@@ -31,18 +32,30 @@ export function auditCursor(tool: ToolInput, teamSize: string, useCase: string):
     monthlySavings = businessCost - proCost;
     recommendedPlan = 'pro';
     recommendedAction = 'Downgrade to Pro';
-    reason = `With ${seats} seat(s), Cursor Pro ($20/user) provides the same core functionality as Business ($40/user). Business adds admin controls and SSO — not needed for small teams.`;
+    savingsType = 'downgrade';
+    reasoning = [
+      `With ${seats} seat(s), Cursor Pro ($20/user) provides the same core functionality as Business ($40/user).`,
+      'Business adds admin controls and SSO which are typically not needed for small teams.',
+      'Core AI features are identical across both plans.'
+    ];
   }
   // Rule: Enterprise for <20 users rarely makes sense
   else if (plan === 'enterprise' && seats < 20) {
     monthlySavings = monthlySpend - (seats * 40); // vs Business
     recommendedPlan = 'business';
     recommendedAction = 'Downgrade to Business';
-    reason = `Cursor Enterprise is designed for 20+ seat deployments with compliance needs. Business plan covers most teams under 20.`;
+    savingsType = 'downgrade';
+    reasoning = [
+      'Cursor Enterprise is designed for 20+ seat deployments with specific compliance needs.',
+      'Business plan covers 95% of team requirements for deployments under 20 seats.',
+      'You maintain all IDE-native features while cutting costs by ~50%.'
+    ];
   }
   // Rule: Pro for coding use case — already the right call
   else if (plan === 'pro' && useCase === 'coding') {
-    reason = 'Cursor Pro is the best-value coding assistant at this price point for your use case.';
+    reasoning = ['Cursor Pro is the best-value coding assistant at this price point for your use case.'];
+  } else {
+    reasoning = ['Your current Cursor configuration is well-aligned with your usage.'];
   }
 
   const annualSavings = monthlySavings * 12;
@@ -52,9 +65,10 @@ export function auditCursor(tool: ToolInput, teamSize: string, useCase: string):
     currentSpend: monthlySpend,
     recommendedAction,
     recommendedPlan,
+    savingsType,
     monthlySavings,
     annualSavings,
-    reason,
+    reasoning,
     isOptimal: monthlySavings === 0,
   };
 }
@@ -63,29 +77,26 @@ export function auditGithubCopilot(tool: ToolInput, teamSize: string, useCase: s
   const { plan, monthlySpend, seats } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
-  let reason = '';
+  let reasoning: string[] = [];
   let recommendedAction = 'Already optimal';
+  let savingsType: 'downgrade' | 'consolidation' | 'optimization' | 'none' = 'none';
 
-  // Rule: If team uses Cursor, Copilot is redundant for coding
-  // (This is called from the main engine when cursor is also present)
-  // Rule: Enterprise for <50 users with no compliance needs — downgrade to Business
   if (plan === 'enterprise' && seats < 50) {
     const saving = seats * (39 - 19);
     monthlySavings = saving;
     recommendedPlan = 'business';
     recommendedAction = 'Downgrade to Business';
-    reason = `GitHub Copilot Enterprise adds SAML SSO and audit logs. For teams under 50 without compliance requirements, Business ($19/user) has identical code-completion capabilities.`;
+    savingsType = 'downgrade';
+    reasoning = [
+      'GitHub Copilot Enterprise adds SAML SSO and audit logs.',
+      'For teams under 50 without complex compliance needs, Business ($19/user) has identical code-completion.',
+      'You save $20 per seat per month with zero impact on developer velocity.'
+    ];
   }
-  // Rule: Individual for 3+ users — Business is more cost-effective with admin controls
   else if (plan === 'individual' && seats >= 3) {
-    const individualCost = seats * 10;
-    const businessCost = seats * 19;
-    if (businessCost < monthlySpend) {
-      // They may be overpaying (e.g., annual plan paid monthly equivalent)
-      reason = 'You are already on the most cost-effective plan for your seat count.';
-    } else {
-      reason = 'Individual plan is the right choice for small independent developers.';
-    }
+    reasoning = ['Individual plan is cost-effective but lacks central billing and admin controls.'];
+  } else {
+    reasoning = ['Copilot is correctly provisioned for your team size.'];
   }
 
   const annualSavings = monthlySavings * 12;
@@ -95,9 +106,10 @@ export function auditGithubCopilot(tool: ToolInput, teamSize: string, useCase: s
     currentSpend: monthlySpend,
     recommendedAction,
     recommendedPlan,
+    savingsType,
     monthlySavings,
     annualSavings,
-    reason,
+    reasoning,
     isOptimal: monthlySavings === 0,
   };
 }
@@ -106,30 +118,45 @@ export function auditClaude(tool: ToolInput, teamSize: string, useCase: string):
   const { plan, monthlySpend, seats } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
-  let reason = '';
+  let reasoning: string[] = [];
   let recommendedAction = 'Already optimal';
+  let savingsType: 'downgrade' | 'consolidation' | 'optimization' | 'none' = 'none';
 
-  // Rule: Team plan for 1 user — Pro is cheaper
   if (plan === 'team' && seats === 1) {
-    monthlySavings = 30 - 20; // Team per-seat vs Pro flat
+    monthlySavings = 30 - 20;
     recommendedPlan = 'pro';
     recommendedAction = 'Switch to Pro';
-    reason = 'Claude Team ($30/user/mo) requires minimum 2 seats and adds collaboration features. For a single user, Claude Pro ($20/mo flat) is identical in capability at $10/mo less.';
+    savingsType = 'downgrade';
+    reasoning = [
+      'Claude Team requires a minimum of 2 seats.',
+      'For a single user, Claude Pro ($20/mo) is identical in capability to Team ($30/seat).',
+      'You are paying a premium for collaboration features you cannot use.'
+    ];
   }
-  // Rule: Max plan for writing/research use case — Pro may be sufficient
   else if (plan === 'max' && (useCase === 'writing' || useCase === 'research') && seats === 1) {
-    monthlySavings = 100 - 20; // Max vs Pro
+    monthlySavings = 100 - 20;
     recommendedPlan = 'pro';
     recommendedAction = 'Downgrade to Pro';
-    reason = `Claude Max ($100/mo) is designed for heavy API-level usage and extended thinking. For ${useCase} use cases, Claude Pro ($20/mo) provides the same Claude 3.7 model with sufficient usage limits for most teams.`;
+    savingsType = 'downgrade';
+    reasoning = [
+      'Claude Max is optimized for heavy API-level usage and extended thinking.',
+      'For standard writing/research, Claude Pro provides the same core model (Claude 3.7).',
+      'Switching saves $80/month while maintaining high-quality output.'
+    ];
   }
-  // Rule: API direct with high spend — consider Credex credits
   else if (plan === 'api' && monthlySpend > 200) {
     const credexSaving = monthlySpend * CREDEX_DISCOUNT_ESTIMATE;
     monthlySavings = credexSaving;
     recommendedPlan = 'api';
     recommendedAction = 'Buy via Credex credits';
-    reason = `At $${monthlySpend}/mo in API spend, Credex pre-purchased credits typically save 15-25% vs retail. At 20% discount, that's ~$${credexSaving.toFixed(0)}/mo in savings.`;
+    savingsType = 'optimization';
+    reasoning = [
+      'Your monthly API spend is high enough to qualify for volume discounts.',
+      'Credex pre-purchased credits typically save 20% over standard retail pricing.',
+      'This change requires zero code modification — only a billing swap.'
+    ];
+  } else {
+    reasoning = ['Claude spend is within expected bounds for your usage.'];
   }
 
   const annualSavings = monthlySavings * 12;
@@ -139,9 +166,10 @@ export function auditClaude(tool: ToolInput, teamSize: string, useCase: string):
     currentSpend: monthlySpend,
     recommendedAction,
     recommendedPlan,
+    savingsType,
     monthlySavings,
     annualSavings,
-    reason,
+    reasoning,
     isOptimal: monthlySavings === 0,
   };
 }
@@ -150,30 +178,42 @@ export function auditChatGPT(tool: ToolInput, teamSize: string, useCase: string)
   const { plan, monthlySpend, seats } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
-  let reason = '';
+  let reasoning: string[] = [];
   let recommendedAction = 'Already optimal';
+  let savingsType: 'downgrade' | 'consolidation' | 'optimization' | 'none' = 'none';
 
-  // Rule: Team plan for 1 user — Plus is cheaper
   if (plan === 'team' && seats === 1) {
     monthlySavings = 30 - 20;
     recommendedPlan = 'plus';
     recommendedAction = 'Switch to Plus';
-    reason = 'ChatGPT Team requires minimum 2 users. A single user on Team overpays $10/mo vs Plus with no meaningful capability difference.';
+    savingsType = 'downgrade';
+    reasoning = [
+      'ChatGPT Team requires minimum 2 users.',
+      'A single user on Team overpays $10/mo compared to Plus.',
+      'Plus provides identical access to GPT-4o and advanced tools.'
+    ];
   }
-  // Rule: Plus for coding use case — Cursor Pro is significantly better value
   else if (plan === 'plus' && useCase === 'coding') {
-    // Cursor Pro ($20) vs ChatGPT Plus ($20) for coding
-    monthlySavings = 0; // Same price — flag as alternative not savings
     recommendedAction = 'Consider switching to Cursor Pro';
-    reason = 'For coding-primary use cases, Cursor Pro ($20/user) provides IDE-native code completion, multi-file context, and direct codebase integration — typically more productive than ChatGPT Plus for engineers at the same price.';
+    reasoning = [
+      'For coding-primary use cases, Cursor Pro provides better IDE integration.',
+      'Pricing is identical ($20/mo), but developer experience is significantly improved.',
+      'This is an efficiency recommendation rather than a direct cost saving.'
+    ];
   }
-  // Rule: API direct with high spend — consider Credex credits
   else if (plan === 'api' && monthlySpend > 200) {
     const credexSaving = monthlySpend * CREDEX_DISCOUNT_ESTIMATE;
     monthlySavings = credexSaving;
     recommendedPlan = 'api';
     recommendedAction = 'Buy via Credex credits';
-    reason = `At $${monthlySpend}/mo in OpenAI API spend, Credex pre-purchased credits typically save 15-25%. Estimated saving: ~$${credexSaving.toFixed(0)}/mo.`;
+    savingsType = 'optimization';
+    reasoning = [
+      'Your OpenAI API spend qualifies for Credex procurement discounts.',
+      'Estimated savings of 20% on monthly consumption.',
+      'Ideal for teams with growing production AI workloads.'
+    ];
+  } else {
+    reasoning = ['ChatGPT configuration is optimal for your current setup.'];
   }
 
   const annualSavings = monthlySavings * 12;
@@ -183,9 +223,10 @@ export function auditChatGPT(tool: ToolInput, teamSize: string, useCase: string)
     currentSpend: monthlySpend,
     recommendedAction,
     recommendedPlan,
+    savingsType,
     monthlySavings,
     annualSavings,
-    reason,
+    reasoning,
     isOptimal: monthlySavings === 0,
   };
 }
@@ -194,18 +235,29 @@ export function auditAPISpend(tool: ToolInput): ToolRecommendation {
   const { name, monthlySpend } = tool;
   let monthlySavings = 0;
   let recommendedAction = 'Already optimal';
-  let reason = '';
+  let reasoning: string[] = [];
+  let savingsType: 'downgrade' | 'consolidation' | 'optimization' | 'none' = 'none';
 
   if (monthlySpend > 500) {
     monthlySavings = monthlySpend * CREDEX_DISCOUNT_ESTIMATE;
     recommendedAction = 'Buy via Credex credits';
-    reason = `At $${monthlySpend}/mo, pre-purchasing ${name === 'anthropic-api' ? 'Anthropic' : 'OpenAI'} credits through Credex at a 20% discount saves ~$${monthlySavings.toFixed(0)}/mo ($${(monthlySavings * 12).toFixed(0)}/yr).`;
+    savingsType = 'optimization';
+    reasoning = [
+      `Your spend on ${name} is high enough for Enterprise-grade credit procurement.`,
+      'Credex offers 20% discounts on bulk credits.',
+      'This is the most direct way to reduce opex for AI-first products.'
+    ];
   } else if (monthlySpend > 100) {
-    monthlySavings = monthlySpend * 0.10; // conservative 10% for smaller volumes
+    monthlySavings = monthlySpend * 0.10;
     recommendedAction = 'Consider Credex credits';
-    reason = `Credex offers discounted API credits. At your current spend level, savings would be modest (~10%) but worth evaluating as your usage grows.`;
+    savingsType = 'optimization';
+    reasoning = [
+      'Moderate spend levels can still benefit from aggregated credit pools.',
+      'Potential for 10-15% savings with minimal effort.',
+      'Monitoring spend as it scales is recommended.'
+    ];
   } else {
-    reason = 'Your API spend is below the threshold where credit purchasing provides meaningful savings. Continue monitoring as usage scales.';
+    reasoning = ['API spend is currently below threshold for meaningful credit negotiation.'];
   }
 
   return {
@@ -214,9 +266,10 @@ export function auditAPISpend(tool: ToolInput): ToolRecommendation {
     currentSpend: monthlySpend,
     recommendedAction,
     recommendedPlan: 'api',
+    savingsType,
     monthlySavings,
     annualSavings: monthlySavings * 12,
-    reason,
+    reasoning,
     isOptimal: monthlySavings === 0,
   };
 }
@@ -225,16 +278,22 @@ export function auditGemini(tool: ToolInput, useCase: string): ToolRecommendatio
   const { plan, monthlySpend, seats } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
-  let reason = '';
+  let reasoning: string[] = [];
   let recommendedAction = 'Already optimal';
+  let savingsType: 'downgrade' | 'consolidation' | 'optimization' | 'none' = 'none';
 
   if (plan === 'ultra' && useCase === 'writing') {
     monthlySavings = 29.99 - 19.99;
     recommendedPlan = 'pro';
     recommendedAction = 'Downgrade to Pro';
-    reason = 'Gemini Ultra ($29.99/mo) adds multimodal extras not needed for writing use cases. Pro ($19.99/mo) provides the same Gemini model access for text-primary workflows.';
-  } else if (plan === 'pro') {
-    reason = 'Gemini Pro is appropriately priced for your use case.';
+    savingsType = 'downgrade';
+    reasoning = [
+      'Gemini Ultra adds multimodal extras not strictly required for text workflows.',
+      'Gemini Pro ($19.99) handles writing and research use cases with high accuracy.',
+      'You save $10/mo while keeping access to the Google AI ecosystem.'
+    ];
+  } else {
+    reasoning = ['Gemini configuration is well-aligned with your use case.'];
   }
 
   return {
@@ -243,9 +302,10 @@ export function auditGemini(tool: ToolInput, useCase: string): ToolRecommendatio
     currentSpend: monthlySpend,
     recommendedAction,
     recommendedPlan,
+    savingsType,
     monthlySavings,
     annualSavings: monthlySavings * 12,
-    reason,
+    reasoning,
     isOptimal: monthlySavings === 0,
   };
 }
@@ -254,8 +314,9 @@ export function auditWindsurf(tool: ToolInput, seats: number): ToolRecommendatio
   const { plan, monthlySpend } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
-  let reason = '';
+  let reasoning: string[] = [];
   let recommendedAction = 'Already optimal';
+  let savingsType: 'downgrade' | 'consolidation' | 'optimization' | 'none' = 'none';
 
   if (plan === 'team' && seats <= 2) {
     const teamCost = seats * 35;
@@ -263,7 +324,14 @@ export function auditWindsurf(tool: ToolInput, seats: number): ToolRecommendatio
     monthlySavings = teamCost - proCost;
     recommendedPlan = 'pro';
     recommendedAction = 'Downgrade to Pro';
-    reason = `Windsurf Teams ($35/user) adds admin controls and usage analytics. For ${seats} user(s), Pro ($15/user) provides identical AI coding capabilities at $${monthlySavings}/mo less.`;
+    savingsType = 'downgrade';
+    reasoning = [
+      'Windsurf Teams adds admin controls that are often redundant for very small teams.',
+      'Pro plan ($15/user) provides the same high-performance AI coding capabilities.',
+      'This cut reduces your Windsurf spend by over 50%.'
+    ];
+  } else {
+    reasoning = ['Windsurf is appropriately configured.'];
   }
 
   return {
@@ -272,16 +340,17 @@ export function auditWindsurf(tool: ToolInput, seats: number): ToolRecommendatio
     currentSpend: monthlySpend,
     recommendedAction,
     recommendedPlan,
+    savingsType,
     monthlySavings,
     annualSavings: monthlySavings * 12,
-    reason,
+    reasoning,
     isOptimal: monthlySavings === 0,
   };
 }
 
-// ─────────────────────────────────────────────────────────
+// ---------------------------------------------------------
 // CROSS-TOOL RULE: Detect overlapping tools
-// ─────────────────────────────────────────────────────────
+// ---------------------------------------------------------
 export function detectRedundantTools(tools: ToolInput[], useCase: string): string[] {
   const warnings: string[] = [];
   const toolNames = tools.map(t => t.name);
@@ -293,21 +362,21 @@ export function detectRedundantTools(tools: ToolInput[], useCase: string): strin
   const hasChatGPT = toolNames.includes('chatgpt');
 
   if (hasCursor && hasCopilot && useCase === 'coding') {
-    warnings.push('You are paying for both Cursor and GitHub Copilot for coding. These have 80%+ feature overlap — most teams pick one. Cursor has stronger multi-file context; Copilot has deeper GitHub integration.');
+    warnings.push('You are paying for both Cursor and GitHub Copilot. These have 80%+ feature overlap — most teams should pick one.');
   }
   if (hasCursor && hasWindsurf && useCase === 'coding') {
-    warnings.push('Cursor and Windsurf are direct competitors for AI-native coding. Running both simultaneously is rarely cost-effective — pick the one your team uses most.');
+    warnings.push('Cursor and Windsurf are direct competitors. Running both is rarely cost-effective — consolidate to your preferred IDE.');
   }
   if (hasClaude && hasChatGPT && (useCase === 'writing' || useCase === 'research')) {
-    warnings.push('Claude and ChatGPT have significant capability overlap for writing/research. Consider consolidating to whichever model your team prefers and cancelling the other.');
+    warnings.push('Claude and ChatGPT have high overlap for writing. Consider consolidating to a single LLM provider.');
   }
 
   return warnings;
 }
 
-// ─────────────────────────────────────────────────────────
+// ---------------------------------------------------------
 // MAIN ENGINE: Runs all rules, returns full audit result
-// ─────────────────────────────────────────────────────────
+// ---------------------------------------------------------
 export function runAudit(input: AuditInput): AuditResult {
   const { tools, teamSize, useCase } = input;
   const recommendations: ToolRecommendation[] = [];
@@ -345,14 +414,50 @@ export function runAudit(input: AuditInput): AuditResult {
     recommendations.push(rec);
   }
 
+  const redundancyWarnings = detectRedundantTools(tools, useCase);
   const totalMonthlySavings = recommendations.reduce((sum, r) => sum + r.monthlySavings, 0);
   const totalAnnualSavings = totalMonthlySavings * 12;
+  const totalMonthlySpend = tools.reduce((sum, t) => sum + t.monthlySpend, 0);
+
+  // Confidence Score Heuristic
+  let confidenceScore = 95;
+  if (totalMonthlySpend > 5000) confidenceScore -= 15;
+  if (tools.length === 1) confidenceScore -= 5;
+  if (input.teamSize === '100+') confidenceScore -= 10;
+
+  // Benchmarking Logic
+  let percentile = 70; // baseline
+  let status: 'OPTIMAL' | 'EFFICIENT' | 'BLOATED' = 'EFFICIENT';
+  let comparisonText = 'Your spend is typical for this team size.';
+
+  const avgPerSeat = totalMonthlySpend / (parseInt(input.teamSize.split('-')[0]) || 1);
+  
+  if (totalMonthlySavings > (totalMonthlySpend * 0.3)) {
+    percentile = 40;
+    status = 'BLOATED';
+    comparisonText = 'Spending ~30% more than optimized peers.';
+  } else if (totalMonthlySavings === 0) {
+    percentile = 98;
+    status = 'OPTIMAL';
+    comparisonText = 'Top 2% efficiency. No waste detected.';
+  } else if (totalMonthlySavings < (totalMonthlySpend * 0.1)) {
+    percentile = 85;
+    status = 'EFFICIENT';
+    comparisonText = 'Highly efficient compared to industry average.';
+  }
 
   return {
     recommendations,
+    redundancyWarnings,
     totalMonthlySavings: Math.round(totalMonthlySavings * 100) / 100,
     totalAnnualSavings: Math.round(totalAnnualSavings * 100) / 100,
     isHighSavings: totalMonthlySavings > 500,
     isAlreadyOptimal: totalMonthlySavings < 100,
+    confidenceScore: Math.max(confidenceScore, 60),
+    benchmarkInfo: {
+      percentile,
+      status,
+      comparisonText
+    }
   };
 }

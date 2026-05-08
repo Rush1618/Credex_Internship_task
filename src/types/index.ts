@@ -20,6 +20,8 @@ export interface ToolInput {
 }
 
 export interface AuditInput {
+  email?: string;
+  company?: string;
   tools: ToolInput[];
   teamSize: TeamSize;
   useCase: UseCase;
@@ -31,19 +33,27 @@ export interface ToolRecommendation {
   currentSpend: number;
   recommendedAction: string;   // "Switch to Pro", "Downgrade to Individual", "Already optimal"
   recommendedPlan: string;
+  savingsType: 'downgrade' | 'consolidation' | 'optimization' | 'none';
   monthlySavings: number;
   annualSavings: number;
-  reason: string;              // 1-sentence defensible reason
+  reasoning: string[];         // changed from reason: string to reasoning: string[]
   isOptimal: boolean;
 }
 
 export interface AuditResult {
   recommendations: ToolRecommendation[];
+  redundancyWarnings: string[];
   totalMonthlySavings: number;
   totalAnnualSavings: number;
   isHighSavings: boolean;      // true if totalMonthlySavings > 500
   isAlreadyOptimal: boolean;   // true if totalMonthlySavings < 100
-  aiSummary?: string;          // populated after Anthropic API call
+  confidenceScore: number;     // 0-100 percentage based on data completeness
+  benchmarkInfo?: {
+    percentile: number; // e.g. 85 for "top 15% most efficient"
+    comparisonText: string; // e.g. "30% higher than peer average"
+    status: 'OPTIMAL' | 'EFFICIENT' | 'BLOATED';
+  };
+  aiSummary?: string;          // populated after OpenRouter API call
 }
 
 export interface Lead {

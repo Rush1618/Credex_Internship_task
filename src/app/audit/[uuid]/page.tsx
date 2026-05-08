@@ -1,25 +1,22 @@
 import { notFound } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
 import { Header } from '@/components/shared/Header';
 import { Footer } from '@/components/shared/Footer';
 import { AuditResults } from '@/components/AuditResults';
-import { LeadCapture } from '@/components/LeadCapture';
+import { ReportActions } from '@/components/ReportActions';
 import type { AuditResult } from '@/types';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { getSupabaseClient } from '@/lib/supabase';
 
 interface PageProps {
-  params: { uuid: string };
+  params: Promise<{ uuid: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps) {
+  const { uuid } = await params;
+  const supabase = getSupabaseClient();
   const { data } = await supabase
     .from('audits')
     .select('total_monthly_savings, total_annual_savings, ai_summary')
-    .eq('uuid', params.uuid)
+    .eq('uuid', uuid)
     .single();
 
   const monthly = data?.total_monthly_savings ?? 0;
@@ -52,10 +49,12 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function AuditPage({ params }: PageProps) {
+  const { uuid } = await params;
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('audits')
     .select('audit_result, total_monthly_savings, total_annual_savings, ai_summary')
-    .eq('uuid', params.uuid)
+    .eq('uuid', uuid)
     .single();
 
   if (error || !data) {
@@ -81,8 +80,8 @@ export default async function AuditPage({ params }: PageProps) {
         {/* Core results */}
         <AuditResults result={result} aiSummary={aiSummary} />
 
-        {/* Lead capture */}
-        <LeadCapture auditUuid={params.uuid} isHighSavings={result.isHighSavings} />
+        {/* Actions (Download PDF / Consult) */}
+        <ReportActions isHighSavings={result.isHighSavings} />
       </main>
 
       <Footer />
