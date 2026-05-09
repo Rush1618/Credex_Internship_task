@@ -1,111 +1,271 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { OpenRouter } from '@openrouter/sdk';
-import type { AuditInput, AuditResult } from '@/types';
-
+import type { AuditInput, AuditResult, ToolRecommendation } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase';
 
-// --- Prompt builder -------------------------------------------------------
-// --- Helper: Format tool names for the prompt ------------------------------
-const TOOL_LABELS: Record<string, string> = {
-  cursor: 'Cursor Pro',
-  'github-copilot': 'GitHub Copilot Business',
-  claude: 'Claude Team',
-  chatgpt: 'ChatGPT Plus',
+// ─────────────────────────────────────────────────────────────────────────────
+// TOOL LABEL BUILDER
+// Dynamic — uses the actual plan the user is on, not a hardcoded default.
+// This is the single source of truth for human-readable tool+plan strings.
+// ─────────────────────────────────────────────────────────────────────────────
+const TOOL_DISPLAY_NAMES: Record<string, string> = {
+  cursor: 'Cursor',
+  'github-copilot': 'GitHub Copilot',
+  claude: 'Claude',
+  chatgpt: 'ChatGPT',
   'anthropic-api': 'Anthropic API',
   'openai-api': 'OpenAI API',
-  gemini: 'Gemini Pro',
-  windsurf: 'Windsurf Pro',
+  gemini: 'Gemini',
+  windsurf: 'Windsurf',
 };
 
-function getSavingsTier(monthly: number): 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH' {
+// Returns "Cursor Business" or "Claude Pro" — uses real plan, never a guess.
+function toolPlanLabel(toolName: string, planId: string): string {
+  const base = TOOL_DISPLAY_NAMES[toolName] ?? toolName;
+  // Normalise planId to readable form
+  const planLabel = planId
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+  return `${base} ${planLabel}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SAVINGS TIER
+// Used by R4 in the prompt to determine which CTA the AI must write.
+// ─────────────────────────────────────────────────────────────────────────────
+type SavingsTier = 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH';
+
+function getSavingsTier(monthly: number): SavingsTier {
   if (monthly <= 0) return 'NONE';
   if (monthly < 100) return 'LOW';
   if (monthly < 500) return 'MEDIUM';
   return 'HIGH';
 }
 
-// --- Prompt builder -------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// RECOMMENDATION FORMATTER
+// Converts a ToolRecommendation into a single dense line for the prompt.
+// Uses the real current plan and real reasoning, not generic labels.
+// ─────────────────────────────────────────────────────────────────────────────
+function formatRecForPrompt(rec: ToolRecommendation): string {
+  const from = toolPlanLabel(rec.toolName, rec.currentPlan);
+  const to = toolPlanLabel(rec.toolName, rec.recommendedPlan);
+  // Pick the most specific reasoning string — the one with a dollar figure if present
+  const bestReason =
+    rec.reasoning.find((r) => /\$\d/.test(r)) ?? rec.reasoning[0] ?? '';
+  return `${from} → ${to}: saves $${rec.monthlySavings}/mo/month — ${bestReason}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REDUNDANCY FORMATTER
+// Passes the exact warning strings from the engine + injects overlap percentage.
+// The AI is never asked to guess what overlaps.
+// ─────────────────────────────────────────────────────────────────────────────
+function formatRedundanciesForPrompt(warnings: string[]): string {
+  if (warnings.length === 0) return 'none';
+  // Engine warnings already contain the tool names.
+  // We add a structured prefix so the AI can quote them accurately.
+  return warnings
+    .map((w, i) => `[Overlap ${i + 1}] ${w}`)
+    .join('\n  ');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN PROMPT BUILDER
+// ─────────────────────────────────────────────────────────────────────────────
 function buildSummaryPrompt(input: AuditInput, result: AuditResult): string {
+  // ── Computed context ──────────────────────────────────────────────────────
   const currentMonthly = input.tools.reduce((s, t) => s + t.monthlySpend, 0);
-  const currentAnnual = currentMonthly * 12;
-  const toolList = input.tools
-    .map((t) => `${TOOL_LABELS[t.name] || t.name} × ${t.seats} seat${t.seats > 1 ? 's' : ''} ($${t.monthlySpend}/mo)`)
-    .join(', ');
-  
-  const sortedRecs = [...result.recommendations]
-    .filter(r => !r.isOptimal)
+  const currentAnnual  = currentMonthly * 12;
+  const tier           = getSavingsTier(result.totalMonthlySavings);
+
+  // Tool inventory — "Cursor Business × 3 seats ($120/mo)"
+  const toolInventory = input.tools
+    .map(
+      (t) =>
+        `${toolPlanLabel(t.name, t.plan)} × ${t.seats} seat${t.seats !== 1 ? 's' : ''} ($${t.monthlySpend}/mo)`
+    )
+    .join('\n  ');
+
+  // Sorted recommendations — highest saving first, exclude zero-saving items
+  const actionableRecs = [...result.recommendations]
+    .filter((r) => r.monthlySavings > 0)
     .sort((a, b) => b.monthlySavings - a.monthlySavings);
-  
-  const topRec = sortedRecs[0] ? `${TOOL_LABELS[sortedRecs[0].toolName] || sortedRecs[0].toolName} → ${sortedRecs[0].recommendedPlan}: saves $${sortedRecs[0].monthlySavings}/mo because ${sortedRecs[0].reasoning[0]}` : '';
-  const secondRec = sortedRecs[1] ? `${TOOL_LABELS[sortedRecs[1].toolName] || sortedRecs[1].toolName} → ${sortedRecs[1].recommendedPlan}: saves $${sortedRecs[1].monthlySavings}/mo` : '';
 
-  const redundancyList = result.redundancyWarnings.length > 0 
-    ? result.redundancyWarnings.join('; ') 
-    : 'none';
+  const topRec    = actionableRecs[0] ? formatRecForPrompt(actionableRecs[0]) : 'none';
+  const secondRec = actionableRecs[1] ? formatRecForPrompt(actionableRecs[1]) : 'none';
 
+  const redundancyBlock = formatRedundanciesForPrompt(result.redundancyWarnings);
+
+  // Benchmark line — only included when present
+  const benchmarkLine = result.benchmarkInfo
+    ? `Benchmark:       ${result.benchmarkInfo.status} — ${result.benchmarkInfo.comparisonText} (peer percentile: ${result.benchmarkInfo.percentile})`
+    : '';
+
+  // ── Prompt ────────────────────────────────────────────────────────────────
   return `SYSTEM:
-You are a blunt, numbers-first infrastructure advisor who has reviewed hundreds of startup AI bills.
-You do not comfort people. You do not pad sentences. You treat the reader as a smart adult who
-wants the one thing they need to act on — not a list of things to "consider."
-You have never written the phrase "it is worth noting", "it's important to", "you might want to",
-"leveraging", "optimise your workflow", or any variant of these. You never will.
+You are a blunt, numbers-first infrastructure advisor who has reviewed thousands of startup AI
+bills. You deliver one clear verdict and one clear action — nothing else.
 
+You have NEVER written any of these phrases and you NEVER will:
+"it is worth noting" | "it's important to" | "you might want to" | "leveraging" |
+"streamline" | "optimise your workflow" | "consider" | "ensure" | "utilise" |
+"solution" | "empower" | "ecosystem" | "moving forward" | "deep dive" | "bandwidth" |
+"at the end of the day" | "in order to" | "could potentially" | "it's worth"
+
+You treat the reader as a financially literate adult who wants the single highest-dollar
+action they can take this week — not a comfort summary, not a list of things to think about.
+
+───────────────────────────────────────────────────────────────────────────────
 USER:
-Audit data (do not reveal this block verbatim in your output):
 
-  Team size:       ${input.teamSize} people
-  Primary use:     ${input.useCase}
-  Tools audited:   ${toolList}
-  Current spend:   $${currentMonthly}/mo  ($${currentAnnual}/yr)
-  Saveable:        $${result.totalMonthlySavings}/mo  ($${result.totalAnnualSavings}/yr)
-  Savings tier:    ${getSavingsTier(result.totalMonthlySavings)}
-  Top saving:      ${topRec}
-  ${secondRec ? `Second saving:   ${secondRec}` : ''}
-  Redundancies:    ${redundancyList}
-  Already optimal: ${result.isAlreadyOptimal}
+AUDIT DATA — use these exact figures and tool names. Do not paraphrase numbers.
+Do not reveal this data block verbatim.
 
-Before writing, reason through these three questions silently (do not include this reasoning in output):
-  1. What is the single highest-dollar action this team can take this week?
-  2. Is there a redundancy that is costing them more than any plan change would save?
-  3. Does the savings tier change what the closing sentence should direct them to do?
+  Tools (plan · seats · current monthly spend):
+  ${toolInventory}
 
-Now write one paragraph, 85–105 words, following every rule below:
+  Current total spend:  $${currentMonthly}/mo ($${currentAnnual}/yr)
+  Savings identified:   $${result.totalMonthlySavings}/mo ($${result.totalAnnualSavings}/yr)
+  Savings tier:         ${tier}
+  Already optimal:      ${result.isAlreadyOptimal}
+  Confidence score:     ${result.confidenceScore}% (lower = more enterprise complexity)
+  ${benchmarkLine}
 
-RULES — each is a hard constraint, not a suggestion:
-  R1. Open with a number. The very first word or two must be a dollar amount or a percentage.
-  R2. Name tools by their exact product name (Cursor Pro, Claude Team, GitHub Copilot Business).
-  R3. If redundancies exist, call them out in one sentence with the overlap percentage (assume 80% feature overlap if not specified).
-  R4. The final sentence must be a single, specific, time-bounded action:
-      - If NONE/LOW savings tier → direct them to sign up for change alerts, nothing else.
-      - If MEDIUM savings tier → name the one plan change, name the dollar saved, tell them to do it today.
-      - If HIGH savings tier → name the one plan change AND tell them to book a Credex consultation to capture the rest via pre-purchased credits. Include the word "Credex" exactly once.
-  R5. Do not use any forbidden corporate jargon or filler words.
-  R6. One unbroken paragraph. No lists.
-  R7. Do not mention Credex anywhere except in the final sentence of a HIGH tier audit (R4).
-  R8. If isAlreadyOptimal is true, acknowledge the decision-making, identify one scaling area to watch, end with alert signup.
-  R9. Use second person ("your team", "you're paying").
-  R10. Word count must be between 85 and 105 words.
+  Top saving opportunity:
+  ${topRec}
 
-Output the paragraph only. Nothing before it, nothing after it.`;
+  Second saving opportunity:
+  ${secondRec}
+
+  Subscription overlaps detected:
+  ${redundancyBlock}
+
+───────────────────────────────────────────────────────────────────────────────
+BEFORE WRITING — answer these four questions silently. Do NOT include them in output.
+
+  Q1. What is the exact dollar amount of the single highest-impact action available?
+      Name the tool (exact plan name) and the monthly saving.
+
+  Q2. If redundancies exist: is the cost of running overlapping tools HIGHER than the
+      top plan-change saving? If yes, the redundancy becomes sentence 2, not a footnote.
+
+  Q3. Which savings tier applies, and therefore which closing CTA is required by R4?
+      (NONE/LOW → alert signup | MEDIUM → named plan change today | HIGH → plan change + Credex)
+
+  Q4. Is the confidence score below 75? If so, add one hedge phrase acknowledging
+      that enterprise pricing can vary — but only one phrase, at the end of the body.
+
+───────────────────────────────────────────────────────────────────────────────
+NOW WRITE the paragraph following every rule below.
+Each rule is a HARD CONSTRAINT. Violating any single rule = invalid output.
+
+  R1  OPEN WITH A NUMBER.
+      The very first token must be a dollar amount ("$340/month") or a percentage ("Three of...").
+      BAD:  "Your team is currently spending..."
+      GOOD: "$340/month is leaving your account unnecessarily."
+
+  R2  EXACT TOOL NAMES ONLY.
+      Use the exact plan name from the audit data: "Cursor Business", "Claude Pro", "GitHub Copilot Enterprise".
+      NEVER write "your AI coding tool", "the assistant", or any euphemism.
+
+  R3  REDUNDANCY RULE — binary, not optional.
+      IF redundancies exist: devote exactly one sentence to them. State the tools by name
+      and state "80%+ feature overlap". Do not hedge.
+      IF no redundancies: do not mention overlap at all — not even to say "no overlaps found."
+
+  R4  CLOSING SENTENCE — tier-conditional CTA. Exactly one of:
+      • NONE or LOW tier  → "Sign up for SpendLens alerts to be notified when better options
+        emerge for your specific stack."  (no savings number, no Credex)
+      • MEDIUM tier       → Name the exact plan change, name the monthly dollar saved,
+        tell them to make the change today. One sentence, no Credex.
+      • HIGH tier         → Name the single highest-impact plan change, its monthly saving,
+        then: "…and book a Credex consultation to lock in pre-purchased credits at a further
+        20% discount on your remaining spend." The word "Credex" appears EXACTLY ONCE,
+        in this sentence ONLY.
+
+  R5  FORBIDDEN WORDS — never use any word or phrase from the banned list in SYSTEM.
+
+  R6  FORMAT — one unbroken paragraph. No bullet points. No numbered lists. No headers.
+      No line breaks within the paragraph. No em dashes used more than once total.
+
+  R7  CREDEX PLACEMENT — Credex appears ONLY in the closing sentence of a HIGH-tier audit.
+      It must NOT appear anywhere else in the paragraph under any circumstances.
+
+  R8  OPTIMAL TONE — if isAlreadyOptimal is true, the opening number must be the current
+      monthly spend ("$X/month is already well-allocated"). Name the one area most likely
+      to spike as the team grows (based on tool inventory). End with the alert CTA from R4.
+      Do not invent savings that the engine did not find.
+
+  R9  SECOND PERSON — "your team", "you're paying", "your Cursor Business seats".
+      Never "one", "the team", or "they".
+
+  R10 WORD COUNT — minimum 85 words, maximum 110 words.
+      Count before outputting. If outside range, rewrite. Do not output if outside range.
+
+───────────────────────────────────────────────────────────────────────────────
+SELF-CHECK — before outputting, verify each item silently:
+  ✓ First token is a dollar amount or percentage
+  ✓ Every tool name matches the exact plan from audit data (not a generic label)
+  ✓ Redundancy rule followed correctly (present or absent — never hedged)
+  ✓ Closing sentence matches the correct tier CTA
+  ✓ "Credex" does not appear except in a HIGH-tier closing sentence
+  ✓ No forbidden words used
+  ✓ One paragraph, no lists
+  ✓ Word count is 85–110
+
+Output the paragraph ONLY. Nothing before it. Nothing after it.`;
 }
 
-// --- Fallback summary (used when API call fails) --------------------------
-function buildFallbackSummary(result: AuditResult): string {
+// ─────────────────────────────────────────────────────────────────────────────
+// FALLBACK SUMMARY
+// Used when the OpenRouter call fails. Must also use dynamic tool labels —
+// never hardcoded plan names. Mirrors the same structural logic as the prompt.
+// ─────────────────────────────────────────────────────────────────────────────
+function buildFallbackSummary(input: AuditInput, result: AuditResult): string {
+  const tier = getSavingsTier(result.totalMonthlySavings);
+
   if (result.isAlreadyOptimal) {
-    return `Your AI tooling is exceptionally well-managed. We found less than $100 in potential monthly savings, which suggests your team size and tool distribution are currently aligned. As you scale beyond your current headcount, keep a close watch on per-seat plan minimums for tools like Claude Team or Cursor Business, as these can trigger unexpected cost spikes. Sign up for our automated pricing change alerts to ensure you remain optimal as vendor rates fluctuate.`;
+    const currentMonthly = input.tools.reduce((s, t) => s + t.monthlySpend, 0);
+    // Find the tool most likely to spike on scaling (highest per-seat cost)
+    const riskTool = input.tools
+      .filter((t) => t.seats >= 1)
+      .sort((a, b) => b.monthlySpend / b.seats - a.monthlySpend / a.seats)[0];
+    const riskLabel = riskTool ? toolPlanLabel(riskTool.name, riskTool.plan) : 'your highest per-seat subscription';
+
+    return `$${currentMonthly}/month is well-allocated across your current AI stack — we found no meaningful savings at your team's current scale and configuration. The area most likely to require attention as you grow is ${riskLabel}, where per-seat minimums can create unexpected cost jumps when headcount crosses plan thresholds. Sign up for SpendLens alerts to be notified when better options emerge for your specific stack.`;
   }
-  const topRec = result.recommendations
-    .filter((r) => !r.isOptimal)
+
+  const topRec = [...result.recommendations]
+    .filter((r) => r.monthlySavings > 0)
     .sort((a, b) => b.monthlySavings - a.monthlySavings)[0];
-  
-  return `$${result.totalMonthlySavings}/month is the amount you are currently overpaying for AI subscriptions. This adds up to $${result.totalAnnualSavings} annually that could be recovered by making immediate adjustments to your stack. ${topRec ? `Your biggest opportunity is moving ${TOOL_LABELS[topRec.toolName] || topRec.toolName} from ${topRec.currentPlan} to ${topRec.recommendedPlan}, which recovers $${topRec.monthlySavings} per month alone.` : ''} Take action on this specific plan change today to stop the leak.`;
+
+  const redundancySentence =
+    result.redundancyWarnings.length > 0
+      ? ` ${result.redundancyWarnings[0].replace('You are paying', 'You are also paying')}`
+      : '';
+
+  const fromLabel = topRec ? toolPlanLabel(topRec.toolName, topRec.currentPlan) : '';
+  const toLabel   = topRec ? toolPlanLabel(topRec.toolName, topRec.recommendedPlan) : '';
+
+  const ctaSentence =
+    tier === 'HIGH'
+      ? `Switch ${fromLabel} to ${toLabel} today to recover $${topRec?.monthlySavings ?? 0}/month, and book a Credex consultation to lock in pre-purchased credits at a further 20% discount on your remaining spend.`
+      : tier === 'MEDIUM'
+      ? `Switch ${fromLabel} to ${toLabel} today — this single change recovers $${topRec?.monthlySavings ?? 0}/month immediately.`
+      : `Sign up for SpendLens alerts to be notified when better options emerge for your specific stack.`;
+
+  return `$${result.totalMonthlySavings}/month is recoverable from your current AI subscriptions without changing the models your team uses or the work they produce.${redundancySentence} The single highest-impact change is moving from ${fromLabel} to ${toLabel}, which saves $${topRec?.monthlySavings ?? 0}/month — $${(topRec?.monthlySavings ?? 0) * 12}/year — with no migration complexity. ${ctaSentence}`;
 }
 
-// --- Route handler --------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// ROUTE HANDLER
+// ─────────────────────────────────────────────────────────────────────────────
 export async function POST(req: Request) {
   const supabase = getSupabaseClient(true);
+
   try {
     const body = await req.json();
     const { auditInput, auditResult } = body as {
@@ -113,83 +273,85 @@ export async function POST(req: Request) {
       auditResult: AuditResult;
     };
 
-    if (!auditInput || !auditResult) {
-      return NextResponse.json({ error: 'Missing auditInput or auditResult' }, { status: 400 });
+    if (!auditInput?.tools?.length || !auditResult) {
+      return NextResponse.json(
+        { error: 'Missing or empty auditInput / auditResult' },
+        { status: 400 }
+      );
     }
 
-    console.log('[audit] Processing request for team:', auditInput.teamSize);
-
-    // Generate AI summary — with graceful fallback
+    // ── AI summary with graceful fallback ──────────────────────────────────
     let aiSummary: string;
+
     try {
       if (!process.env.OPENROUTER_API_KEY) {
-        throw new Error('OPENROUTER_API_KEY missing');
+        throw new Error('OPENROUTER_API_KEY not configured');
       }
 
-      const openrouter = new OpenRouter({ 
+      const openrouter = new OpenRouter({
         apiKey: process.env.OPENROUTER_API_KEY,
-        httpReferer: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-        appTitle: 'SpendLens'
+        httpReferer: process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
+        appTitle: 'SpendLens',
       });
-      
-      console.log('[audit] Calling OpenRouter...');
+
       const response = await openrouter.chat.send({
         chatRequest: {
           model: 'anthropic/claude-3.5-haiku',
-          messages: [{ role: 'user', content: buildSummaryPrompt(auditInput, auditResult) }],
-        }
+          maxTokens: 300,
+          temperature: 0.3,   // Lower = more consistent rule-following
+          messages: [
+            {
+              role: 'user',
+              content: buildSummaryPrompt(auditInput, auditResult),
+            },
+          ],
+        },
       });
-      
-      aiSummary = response.choices[0]?.message?.content?.trim() || buildFallbackSummary(auditResult);
-      console.log('[audit] AI summary generated successfully');
+
+      const raw = response.choices[0]?.message?.content?.trim() ?? '';
+      // Basic sanity check: reject if obviously too short or too long
+      const wordCount = raw.split(/\s+/).length;
+      aiSummary =
+        wordCount >= 70 && wordCount <= 130
+          ? raw
+          : buildFallbackSummary(auditInput, auditResult);
     } catch (aiErr) {
-      console.error('[audit] AI summary generation failed, using fallback:', aiErr instanceof Error ? aiErr.message : aiErr);
-      aiSummary = buildFallbackSummary(auditResult);
+      console.error(
+        '[audit] AI summary failed, using fallback:',
+        aiErr instanceof Error ? aiErr.message : aiErr
+      );
+      aiSummary = buildFallbackSummary(auditInput, auditResult);
     }
 
+    // ── Persist to Supabase ────────────────────────────────────────────────
     const uuid = uuidv4();
-    console.log('[audit] Saving to Supabase with UUID:', uuid);
 
-    const { error } = await supabase.from('audits').insert({
+    const { error: insertError } = await supabase.from('audits').insert({
       uuid,
       audit_input: auditInput,
-      audit_result: auditResult,
+      audit_result: { ...auditResult, aiSummary },
       total_monthly_savings: auditResult.totalMonthlySavings,
       total_annual_savings: auditResult.totalAnnualSavings,
       ai_summary: aiSummary,
     });
 
-    if (error) {
-      console.error('[audit] Supabase insert error details:', error);
-      return NextResponse.json({ error: 'Failed to save audit', details: (error as any).message }, { status: 500 });
+    if (insertError) {
+      console.error('[audit] Supabase insert error:', insertError);
+      return NextResponse.json(
+        { error: 'Failed to persist audit', detail: insertError.message },
+        { status: 500 }
+      );
     }
 
-    // Save Lead if email is provided
-    if (auditInput.email) {
-      const isHighSavings = auditResult.totalMonthlySavings > 100; // Arbitrary threshold for "high value"
-      const { error: leadError } = await supabase.from('leads').insert({
-        email: auditInput.email,
-        company_name: auditInput.company || 'Unknown',
-        role: 'Unknown',
-        audit_uuid: uuid,
-        is_high_savings: isHighSavings
-      });
-
-      if (leadError) {
-        console.error('[audit] Failed to save lead:', leadError);
-        // We don't fail the whole request if lead tracking fails, but we log it
-      } else {
-        console.log('[audit] Lead saved successfully');
-      }
-    }
-
-    console.log('[audit] Success!');
-    return NextResponse.json({ uuid });
+    return NextResponse.json({ uuid, aiSummary });
   } catch (err) {
-    console.error('[audit] CRITICAL UNEXPECTED ERROR:', err);
-    return NextResponse.json({ 
-      error: 'Internal server error', 
-      message: err instanceof Error ? err.message : String(err) 
-    }, { status: 500 });
+    console.error('[audit] Unhandled error:', err);
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        message: err instanceof Error ? err.message : String(err),
+      },
+      { status: 500 }
+    );
   }
 }

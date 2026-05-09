@@ -131,78 +131,83 @@ export function SpendForm() {
   );
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-12">
+    <div className="w-full max-w-2xl mx-auto space-y-16">
       {/* Step 1 — Team context */}
-      <section className="space-y-6">
-        <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400 text-sm font-bold border border-blue-500/20 shadow-lg shadow-blue-500/10">
+      <section className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="flex items-center gap-5">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400 text-sm font-black border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.15)] italic">
             01
           </div>
           <div className="space-y-0.5">
-            <h2 className="text-xl font-bold text-white tracking-tight">Your Context</h2>
-            <p className="text-sm text-slate-500">Tell us about your team and use case</p>
+            <h2 className="text-2xl font-black text-white tracking-tighter uppercase italic">Institutional Context</h2>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Define the operational parameters</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-slate-500">Work Email</Label>
-            <input
-              id="email"
-              type="email"
-              placeholder="you@company.com"
-              value={form.email || ''}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              className="w-full h-11 bg-slate-900/50 border border-white/5 focus:ring-2 focus:ring-blue-500/20 text-white rounded-md px-3 outline-none"
-            />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+          <div className="space-y-3 sm:col-span-2 group">
+            <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 group-focus-within:text-blue-500 transition-colors">Corporate Intelligence Email</Label>
+            <div className="relative">
+              <input
+                id="email"
+                type="email"
+                placeholder="identity@enterprise.ai"
+                value={form.email || ''}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                className="w-full h-14 bg-white/[0.03] border border-white/10 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 text-white rounded-2xl px-5 outline-none transition-all font-medium placeholder:text-slate-700"
+              />
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="company" className="text-xs font-bold uppercase tracking-widest text-slate-500">Company Name</Label>
-            <input
-              id="company"
-              type="text"
-              placeholder="Acme Corp"
-              value={form.company || ''}
-              onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
-              className="w-full h-11 bg-slate-900/50 border border-white/5 focus:ring-2 focus:ring-blue-500/20 text-white rounded-md px-3 outline-none"
-            />
+          <div className="space-y-3 group">
+            <Label htmlFor="company" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 group-focus-within:text-blue-500 transition-colors">Organization</Label>
+            <div className="relative">
+              <input
+                id="company"
+                type="text"
+                placeholder="Global Corp"
+                value={form.company || ''}
+                onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+                className="w-full h-14 bg-white/[0.03] border border-white/10 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 text-white rounded-2xl px-5 outline-none transition-all font-medium placeholder:text-slate-700"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="teamSize" className="text-xs font-bold uppercase tracking-widest text-slate-500">Team size</Label>
+          <div className="space-y-3">
+            <Label htmlFor="teamSize" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Resource Scale</Label>
             <Select
               value={form.teamSize}
               onValueChange={(v) => setForm((f) => ({ ...f, teamSize: v as TeamSize }))}
             >
-              <SelectTrigger id="teamSize" className="h-11 bg-slate-900/50 border-white/5 focus:ring-blue-500/20 text-white">
+              <SelectTrigger id="teamSize" className="h-14 bg-white/[0.03] border-white/10 focus:ring-blue-500/10 text-white rounded-2xl px-5 font-bold">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-900 border-white/10 text-white">
-                <SelectItem value="1" className="focus:bg-blue-600">Solo (1)</SelectItem>
-                <SelectItem value="2-5" className="focus:bg-blue-600">Small (2–5)</SelectItem>
-                <SelectItem value="6-20" className="focus:bg-blue-600">Mid (6–20)</SelectItem>
-                <SelectItem value="20-100" className="focus:bg-blue-600">Growth (20–100)</SelectItem>
-                <SelectItem value="100+" className="focus:bg-blue-600">Large (100+)</SelectItem>
+              <SelectContent className="bg-[#0a0a0a] border-white/10 text-white rounded-2xl shadow-2xl p-2">
+                <SelectItem value="1" className="rounded-xl focus:bg-blue-600 font-bold uppercase text-[10px] tracking-widest py-3">Solo (1)</SelectItem>
+                <SelectItem value="2-5" className="rounded-xl focus:bg-blue-600 font-bold uppercase text-[10px] tracking-widest py-3">Alpha (2–5)</SelectItem>
+                <SelectItem value="6-20" className="rounded-xl focus:bg-blue-600 font-bold uppercase text-[10px] tracking-widest py-3">Squad (6–20)</SelectItem>
+                <SelectItem value="20-100" className="rounded-xl focus:bg-blue-600 font-bold uppercase text-[10px] tracking-widest py-3">Growth (20–100)</SelectItem>
+                <SelectItem value="100+" className="rounded-xl focus:bg-blue-600 font-bold uppercase text-[10px] tracking-widest py-3">Enterprise (100+)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="useCase" className="text-xs font-bold uppercase tracking-widest text-slate-500">Primary use case</Label>
+          <div className="space-y-3 sm:col-span-2">
+            <Label htmlFor="useCase" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Primary Objective</Label>
             <Select
               value={form.useCase}
               onValueChange={(v) => setForm((f) => ({ ...f, useCase: v as UseCase }))}
             >
-              <SelectTrigger id="useCase" className="h-11 bg-slate-900/50 border-white/5 focus:ring-blue-500/20 text-white">
+              <SelectTrigger id="useCase" className="h-14 bg-white/[0.03] border-white/10 focus:ring-blue-500/10 text-white rounded-2xl px-5 font-bold">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-900 border-white/10 text-white">
-                <SelectItem value="coding" className="focus:bg-blue-600">Coding / Engineering</SelectItem>
-                <SelectItem value="writing" className="focus:bg-blue-600">Writing / Content</SelectItem>
-                <SelectItem value="data" className="focus:bg-blue-600">Data / Analytics</SelectItem>
-                <SelectItem value="research" className="focus:bg-blue-600">Research</SelectItem>
-                <SelectItem value="mixed" className="focus:bg-blue-600">Mixed / General</SelectItem>
+              <SelectContent className="bg-[#0a0a0a] border-white/10 text-white rounded-2xl shadow-2xl p-2">
+                <SelectItem value="coding" className="rounded-xl focus:bg-blue-600 font-bold uppercase text-[10px] tracking-widest py-3">System Engineering</SelectItem>
+                <SelectItem value="writing" className="rounded-xl focus:bg-blue-600 font-bold uppercase text-[10px] tracking-widest py-3">Content Synthesis</SelectItem>
+                <SelectItem value="data" className="rounded-xl focus:bg-blue-600 font-bold uppercase text-[10px] tracking-widest py-3">Data Intelligence</SelectItem>
+                <SelectItem value="research" className="rounded-xl focus:bg-blue-600 font-bold uppercase text-[10px] tracking-widest py-3">Exploratory Research</SelectItem>
+                <SelectItem value="mixed" className="rounded-xl focus:bg-blue-600 font-bold uppercase text-[10px] tracking-widest py-3">General Utility</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -210,27 +215,28 @@ export function SpendForm() {
       </section>
 
       {/* Step 2 — Tools */}
-      <section className="space-y-6">
-        <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-600/20 text-purple-400 text-sm font-bold border border-purple-500/20 shadow-lg shadow-purple-500/10">
+      <section className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+        <div className="flex items-center gap-5">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-400 text-sm font-black border border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.15)] italic">
             02
           </div>
           <div className="space-y-0.5">
-            <h2 className="text-xl font-bold text-white tracking-tight">AI Stack</h2>
-            <p className="text-sm text-slate-500">Select the tools you currently pay for</p>
+            <h2 className="text-2xl font-black text-white tracking-tighter uppercase italic">Inventory Manifest</h2>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Select active neural assets</p>
           </div>
         </div>
 
         {/* Tool chips to add */}
         {availableTools.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {availableTools.map((t) => (
               <button
                 key={t}
+                type="button"
                 onClick={() => addTool(t)}
-                className="flex items-center gap-2 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-2 text-sm text-slate-400 hover:bg-white/[0.05] hover:border-white/10 hover:text-white transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-blue-600/10 hover:border-blue-500/30 hover:text-white transition-all transform hover:-translate-y-1 active:translate-y-0 shadow-lg"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-3.5 w-3.5 text-blue-500" />
                 {TOOL_LABELS[t]}
               </button>
             ))}
@@ -239,9 +245,9 @@ export function SpendForm() {
 
         {/* Added tools */}
         {form.tools.length > 0 && (
-          <div className="space-y-4 pt-2">
+          <div className="space-y-6 pt-4">
             {form.tools.map((tool, i) => (
-              <div key={tool.name} className="animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${i * 100}ms` }}>
+              <div key={tool.name} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 100}ms` }}>
                 <ToolRow
                   tool={tool}
                   index={i}
@@ -254,48 +260,50 @@ export function SpendForm() {
         )}
 
         {form.tools.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-white/5 bg-white/[0.01] p-12 text-center text-sm text-slate-500">
-            Click a tool above to begin your audit
+          <div className="rounded-[2.5rem] border border-dashed border-white/10 bg-white/[0.01] p-16 text-center text-xs font-black uppercase tracking-[0.3em] text-slate-600 animate-pulse">
+            Initialize manifest by selecting assets above
           </div>
         )}
       </section>
 
       {/* Error */}
       {error && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
-          {error}
+        <div className="p-5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-black uppercase tracking-widest text-center animate-shake">
+          CRITICAL ERROR: {error}
         </div>
       )}
 
       {/* Submit */}
-      <div className="pt-6">
-        <Button
+      <div className="pt-10">
+        <button
           onClick={handleSubmit}
           disabled={isSubmitting || form.tools.length === 0}
-          className="w-full gap-3 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-lg shadow-2xl shadow-blue-500/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
-          size="lg"
+          className="group relative w-full h-20 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-[0_20px_50px_rgba(59,130,246,0.3)] transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed overflow-hidden"
         >
-          {isSubmitting ? (
-            <div className="flex items-center gap-3">
-              <div className="h-5 w-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-              Running AI Synthesis…
-            </div>
-          ) : (
-            <>
-              <Zap className="h-5 w-5 fill-current" />
-              Generate Audit Report
-            </>
-          )}
-        </Button>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+          <div className="relative z-10 flex items-center justify-center gap-4">
+            {isSubmitting ? (
+              <>
+                <div className="h-5 w-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                <span>Synthesizing Intelligence...</span>
+              </>
+            ) : (
+              <>
+                <Zap className="h-5 w-5 fill-current animate-pulse text-blue-200" />
+                <span>Execute Final Audit</span>
+              </>
+            )}
+          </div>
+        </button>
       </div>
 
-      <div className="flex flex-col items-center gap-4 pt-4">
-        <p className="text-center text-xs text-slate-500 font-medium">
-          No account required · Private by default · Results in under 60s
+      <div className="flex flex-col items-center gap-6 pt-6">
+        <p className="text-center text-[10px] text-slate-600 font-black uppercase tracking-[0.2em]">
+          End-to-End Encryption · Autonomous Engine · Zero Friction
         </p>
-        <div className="flex items-center gap-4 opacity-30">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Powered by</span>
-          <span className="text-xs font-bold text-white tracking-tighter">OpenRouter</span>
+        <div className="flex items-center gap-4 opacity-40 hover:opacity-100 transition-opacity">
+          <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">Core Engine by</span>
+          <span className="text-xs font-black text-white tracking-tighter italic">OPENROUTER INTEL</span>
         </div>
       </div>
     </div>

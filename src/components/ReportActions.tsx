@@ -6,21 +6,41 @@ import { Download, CalendarCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface ReportActionsProps {
+  uuid: string;
   isHighSavings: boolean;
 }
 
-export function ReportActions({ isHighSavings }: ReportActionsProps) {
+export function ReportActions({ uuid, isHighSavings }: ReportActionsProps) {
   const [mounted, setMounted] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleDownloadPDF = () => {
-    if (typeof window !== 'undefined') {
-      window.print();
+  const handleDownloadPDF = async () => {
+    try {
+      setIsExporting(true);
+      const response = await fetch(`/api/audit/${uuid}/export`);
+      if (!response.ok) throw new Error('Failed to export PDF');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SpendLens_Audit_${uuid.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('Failed to generate PDF. Please try again or contact support.');
+    } finally {
+      setIsExporting(false);
     }
   };
+
 
   const handleBookConsultation = () => {
     // You can redirect to a calendly link or mailto
@@ -39,10 +59,16 @@ export function ReportActions({ isHighSavings }: ReportActionsProps) {
       </CardHeader>
 
       <CardContent className="flex flex-col sm:flex-row gap-4">
-        <Button onClick={handleDownloadPDF} variant="outline" className="flex-1 gap-2 border-white/10 text-white hover:bg-white/5">
+        <Button 
+          onClick={handleDownloadPDF} 
+          disabled={isExporting}
+          variant="outline" 
+          className="flex-1 gap-2 border-white/10 text-white hover:bg-white/5"
+        >
           <Download className="h-4 w-4" />
-          Download as PDF
+          {isExporting ? 'Exporting...' : 'Download as PDF'}
         </Button>
+
         
         {isHighSavings && (
           <Button onClick={handleBookConsultation} className="flex-1 gap-2 bg-blue-600 hover:bg-blue-500 text-white">

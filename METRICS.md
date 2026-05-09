@@ -52,7 +52,7 @@ In priority order:
 
 ## What Number Triggers a Pivot Decision
 
-**If email capture rate drops below 10% for 7 consecutive days:** The value shown in the audit isn't compelling enough to justify giving an email. Pivot the lead capture timing — try capturing before showing the full breakdown (gated model) or add a stronger incentive (PDF export, benchmark comparison, personal report).
+**If email capture rate drops below 10% for 7 consecutive days:** The value shown in the audit isn't compelling enough to justify giving an email. Pivot the lead capture timing — try capturing before showing the full breakdown (gated model) or add a stronger incentive (benchmark comparison, personal report). Note: High-fidelity PDF export has already been implemented as a premium value-add.
 
 **If audit completion rate drops below 20%:** The form is too long or confusing. Reduce to 3 tools maximum in the MVP, pre-fill the most common stack (Cursor + Claude + ChatGPT), and simplify the team size selector.
 

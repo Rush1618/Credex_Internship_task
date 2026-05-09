@@ -77,11 +77,12 @@ export default async function AuditPage({ params }: PageProps) {
           </p>
         </div>
 
-        {/* Core results */}
-        <AuditResults result={result} aiSummary={aiSummary} />
+        {/* Results Sections */}
+        <AuditResults uuid={uuid} result={result} aiSummary={aiSummary} />
 
         {/* Actions (Download PDF / Consult) */}
-        <ReportActions isHighSavings={result.isHighSavings} />
+        <ReportActions uuid={uuid} isHighSavings={result.isHighSavings} />
+
       </main>
 
       <Footer />

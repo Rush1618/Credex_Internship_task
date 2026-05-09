@@ -14,8 +14,10 @@ graph TB
         HP[/ — page.tsx\nServer Component]
         AP[/audit/uuid — page.tsx\nServer Component]
         AAPI[/api/audit\nRoute Handler]
+        EAPI[/api/audit/uuid/export\nRoute Handler]
         LAPI[/api/lead\nRoute Handler]
         AE[audit-engine.ts\nPure TS Functions]
+        PY[exportAuditPDF.py\nPython / ReportLab]
     end
 
     subgraph External["External APIs"]
@@ -37,10 +39,15 @@ graph TB
     F -->|router.push /audit/uuid| AP
     AP -->|SELECT by uuid| AT
     AP --> AR
+    AR -->|GET /export| EAPI
+    EAPI -->|spawn child_process| PY
+    PY -->|returns high-fidelity PDF| EAPI
+    EAPI -->|streams to user| AR
     AR --> LC
     LC -->|POST email + companyName + role| LAPI
     LAPI -->|INSERT| LT
     LAPI -->|send audit report link| RS
+
 ```
 
 ---

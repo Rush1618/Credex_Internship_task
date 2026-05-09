@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useMemo, useState } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useRef, useMemo } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { 
   Float, 
   MeshTransmissionMaterial, 
@@ -11,23 +11,21 @@ import {
   Stars,
   PerspectiveCamera,
   ContactShadows,
-  Instances,
-  Instance
 } from '@react-three/drei';
 import * as THREE from 'three';
 
-function CurrencyParticles({ count = 50 }: { count?: number }) {
-  const symbols = ['$', '€', '£', '¥'];
+function CurrencyParticles({ count = 60 }: { count?: number }) {
+  const symbols = ['$', 'AI', 'INTEL', 'BURN', 'SAVE'];
   const particles = useMemo(() => {
     const temp = [];
     for (let i = 0; i < count; i++) {
       temp.push({
         position: [
-          (Math.random() - 0.5) * 20,
-          (Math.random() - 0.5) * 20,
-          (Math.random() - 0.5) * 20
+          (Math.random() - 0.5) * 25,
+          (Math.random() - 0.5) * 25,
+          (Math.random() - 0.5) * 25
         ] as [number, number, number],
-        speed: Math.random() * 0.5 + 0.1,
+        speed: Math.random() * 0.4 + 0.1,
         symbol: symbols[Math.floor(Math.random() * symbols.length)],
         rotation: [Math.random() * Math.PI, Math.random() * Math.PI, 0] as [number, number, number]
       });
@@ -48,18 +46,19 @@ function CurrencyItem({ position, speed, symbol, rotation }: { position: [number
   const ref = useRef<THREE.Group>(null);
   useFrame((state) => {
     if (!ref.current) return;
-    ref.current.position.y += Math.sin(state.clock.elapsedTime * speed) * 0.01;
-    ref.current.rotation.y += 0.01;
+    ref.current.position.y += Math.sin(state.clock.elapsedTime * speed) * 0.005;
+    ref.current.rotation.y += 0.005;
   });
 
   return (
     <group ref={ref} position={position} rotation={rotation}>
       <Text
-        fontSize={0.5}
+        fontSize={0.2}
         color="#3b82f6"
         anchorX="center"
         anchorY="middle"
         font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfMZg.ttf"
+        fillOpacity={0.2}
       >
         {symbol}
       </Text>
@@ -72,56 +71,66 @@ function CentralLens() {
   const scanLineRef = useRef<THREE.Group>(null);
   const config = {
     backside: true,
-    backsideThickness: 0.3,
+    backsideThickness: 0.5,
     transmission: 1,
-    thickness: 0.5,
+    thickness: 1,
     roughness: 0,
-    chromaticAberration: 0.2,
+    chromaticAberration: 0.5,
     anisotropy: 1,
     distortion: 0.5,
-    distortionScale: 1.0,
-    temporalDistortion: 0.1,
+    distortionScale: 1.5,
+    temporalDistortion: 0.2,
     clearcoat: 1,
-    attenuationDistance: 0.5,
+    attenuationDistance: 1,
     attenuationColor: '#ffffff',
-    color: '#3b82f6',
+    color: '#0ea5e9',
   };
 
   useFrame((state) => {
     if (!mesh.current || !scanLineRef.current) return;
-    mesh.current.rotation.y += 0.005;
-    mesh.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.5) * 0.2;
+    mesh.current.rotation.y += 0.003;
+    mesh.current.rotation.z += 0.001;
     
     // Scan line animation
-    scanLineRef.current.position.y = Math.sin(state.clock.elapsedTime * 2) * 2.2;
+    scanLineRef.current.position.y = Math.sin(state.clock.elapsedTime * 1.5) * 2.5;
   });
 
   return (
-    <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
+    <Float speed={1.5} rotationIntensity={0.8} floatIntensity={1.5}>
       <group>
         <mesh ref={mesh}>
-          <sphereGeometry args={[2.2, 64, 64]} />
+          <icosahedronGeometry args={[2.5, 15]} />
           <MeshTransmissionMaterial {...config} />
         </mesh>
         
         {/* Pulsing Scan Line */}
         <group ref={scanLineRef}>
           <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[2.3, 0.015, 16, 100]} />
-            <meshBasicMaterial color="#3b82f6" transparent opacity={0.6} />
+            <torusGeometry args={[2.8, 0.02, 16, 100]} />
+            <meshBasicMaterial color="#3b82f6" transparent opacity={0.4} />
           </mesh>
         </group>
+
+        {/* Outer Rings */}
+        <mesh rotation={[Math.PI / 3, 0, 0]}>
+          <torusGeometry args={[4, 0.01, 16, 100]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.05} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 4, Math.PI / 4, 0]}>
+          <torusGeometry args={[3.5, 0.01, 16, 100]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.05} />
+        </mesh>
       </group>
     </Float>
   );
 }
 
-function ConnectionLines({ count = 20 }: { count?: number }) {
+function ConnectionLines({ count = 40 }: { count?: number }) {
   const lines = useMemo(() => {
     const temp = [];
     for (let i = 0; i < count; i++) {
-      const p1 = new THREE.Vector3((Math.random() - 0.5) * 15, (Math.random() - 0.5) * 15, (Math.random() - 0.5) * 15);
-      const p2 = new THREE.Vector3((Math.random() - 0.5) * 15, (Math.random() - 0.5) * 15, (Math.random() - 0.5) * 15);
+      const p1 = new THREE.Vector3((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
+      const p2 = new THREE.Vector3((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
       temp.push({ p1, p2 });
     }
     return temp;
@@ -142,51 +151,50 @@ function Line({ start, end }: { start: THREE.Vector3, end: THREE.Vector3 }) {
   
   useFrame((state) => {
     if (!ref.current) return;
-    (ref.current.material as THREE.LineBasicMaterial).opacity = 0.1 + Math.sin(state.clock.elapsedTime * 2) * 0.05;
+    (ref.current.material as THREE.LineBasicMaterial).opacity = 0.05 + Math.sin(state.clock.elapsedTime * 1.5) * 0.03;
   });
 
   return (
     <line ref={ref as any}>
       <bufferGeometry attach="geometry" onUpdate={self => self.setFromPoints(points)} />
-      <lineBasicMaterial attach="material" color="#8b5cf6" transparent opacity={0.1} />
+      <lineBasicMaterial attach="material" color="#3b82f6" transparent opacity={0.05} />
     </line>
   );
 }
 
 export default function ExperienceScene() {
   return (
-    <div className="h-screen w-full bg-slate-950">
-      <Canvas dpr={[1, 2]} shadows>
-        <PerspectiveCamera makeDefault position={[0, 0, 15]} fov={50} />
-        <color attach="background" args={['#020617']} />
+    <div className="h-screen w-full bg-[#050505]">
+      <Canvas dpr={[1, 2]} shadows gl={{ antialias: true, alpha: true }}>
+        <PerspectiveCamera makeDefault position={[0, 0, 18]} fov={45} />
+        <color attach="background" args={['#050505']} />
         
-        <ambientLight intensity={0.5} />
-        <pointLight position={[10, 10, 10]} intensity={1} color="#3b82f6" />
+        <ambientLight intensity={0.2} />
+        <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} color="#0ea5e9" />
         <pointLight position={[-10, -10, -10]} intensity={0.5} color="#8b5cf6" />
         
-        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+        <Stars radius={100} depth={50} count={3000} factor={4} saturation={0} fade speed={1} />
         
-        <CurrencyParticles count={40} />
-        <ConnectionLines count={30} />
+        <CurrencyParticles count={50} />
+        <ConnectionLines count={40} />
         <CentralLens />
         
         <ContactShadows 
-          position={[0, -4.5, 0]} 
-          opacity={0.4} 
-          scale={20} 
-          blur={2} 
-          far={4.5} 
+          position={[0, -5, 0]} 
+          opacity={0.3} 
+          scale={30} 
+          blur={3} 
+          far={10} 
         />
         
-        <Environment preset="city" />
+        <Environment preset="night" />
         <OrbitControls 
           enablePan={false} 
           enableZoom={false} 
           autoRotate 
-          autoRotateSpeed={0.5} 
+          autoRotateSpeed={0.3} 
         />
       </Canvas>
-      
     </div>
   );
 }

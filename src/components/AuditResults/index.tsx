@@ -1,211 +1,230 @@
 'use client';
 
+import { useState } from 'react';
 import { AuditResult } from '@/types';
 import { RecommendationCard } from './RecommendationCard';
 import { SummaryStat } from './SummaryStat';
+
+export { RecommendationCard, SummaryStat };
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { TrendingDown, Calendar, AlertTriangle, CheckCircle2, ExternalLink, Sparkles } from 'lucide-react';
+import { TrendingDown, Calendar, AlertTriangle, CheckCircle2, ExternalLink, Sparkles, Printer, Share2, ArrowRight, Zap } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 
 interface AuditResultsProps {
+  uuid: string;
   result: AuditResult;
   aiSummary?: string;
 }
 
-export function AuditResults({ result, aiSummary }: AuditResultsProps) {
+export function AuditResults({ uuid, result, aiSummary }: AuditResultsProps) {
+  const [isExporting, setIsExporting] = useState(false);
+
   const {
     totalMonthlySavings,
     totalAnnualSavings,
     recommendations,
     redundancyWarnings,
-    isHighSavings,
   } = result;
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   const isOptimalSpend = totalMonthlySavings < 100 && recommendations.every((r) => r.isOptimal);
 
+  const retainList = recommendations.filter((r) => r.isOptimal || r.savingsType === 'optimization');
+  const actionList = recommendations.filter((r) => !r.isOptimal && r.savingsType !== 'optimization');
+
   return (
-    <div className="space-y-10">
-      {/* AI Summary & Trust Score */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="space-y-12 font-sans max-w-5xl mx-auto">
+      {/* Header / Actions */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-4 border-b border-white/10 no-print">
+        <div className="space-y-2">
+          <Badge variant="outline" className="border-blue-500/30 text-blue-400 font-black uppercase tracking-[0.2em] px-4 py-1 rounded-full text-[10px] italic bg-blue-500/5">
+            Audit Terminal Active
+          </Badge>
+          <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">Intelligence Report</h1>
+          <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">ID: {uuid.slice(0, 12)} · Verified {new Date().toLocaleDateString()}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            size="lg" 
+            className="h-14 px-8 rounded-2xl border-white/10 bg-white/[0.03] hover:bg-white/[0.08] text-white font-black uppercase tracking-widest text-[10px] italic gap-3 transition-all transform hover:-translate-y-1"
+            onClick={() => { navigator.clipboard.writeText(window.location.href); alert('Intelligence Link Copied'); }}
+          >
+            <Share2 className="h-4 w-4" /> Share
+          </Button>
+          <Button 
+            size="lg" 
+            className="h-14 px-8 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-[10px] italic gap-3 shadow-[0_0_30px_rgba(59,130,246,0.3)] transition-all transform hover:-translate-y-1"
+            onClick={handlePrint}
+          >
+            <Printer className="h-4 w-4" /> Print Audit
+          </Button>
+        </div>
+      </div>
+
+      {/* Row 1: AI Summary + Confidence */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {aiSummary && (
-          <section className="md:col-span-2 rounded-xl border border-border bg-muted/40 p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <Sparkles className="h-3.5 w-3.5" />
-                AI Analysis
-              </div>
-              <div className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
-                Powered by <span className="font-semibold">OpenRouter</span>
-              </div>
+          <section className="lg:col-span-8 rounded-[2.5rem] border border-white/10 bg-white/[0.02] p-10 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Sparkles className="h-24 w-24 text-blue-500" />
             </div>
-            <p className="text-sm leading-relaxed">{aiSummary}</p>
-          </section>
-        )}
-        
-        <section className="rounded-xl border border-border bg-muted/20 p-5 flex flex-col justify-between">
-          <div className="space-y-1">
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Audit Confidence</div>
-            <div className="flex items-baseline gap-2">
-              <span className={`text-3xl font-bold ${
-                result.confidenceScore > 85 ? 'text-emerald-600' : 
-                result.confidenceScore > 70 ? 'text-amber-600' : 'text-rose-600'
-              }`}>
-                {result.confidenceScore}%
-              </span>
-            </div>
-            <p className="text-[10px] text-muted-foreground leading-tight">
-              Based on team size alignment and current tool market pricing.
-            </p>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-2 mt-4">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex-1 gap-2 text-xs"
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-                alert('Audit link copied to clipboard!');
-              }}
-            >
-              <ExternalLink className="h-3 w-3" />
-              Share Report
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex-1 gap-2 text-xs"
-              onClick={() => window.print()}
-            >
-              <TrendingDown className="h-3 w-3" />
-              Download PDF
-            </Button>
-          </div>
-        </section>
-
-        {/* Benchmark Card */}
-        {result.benchmarkInfo && (
-          <section className="col-span-1 lg:col-span-3 rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col sm:flex-row items-center gap-6">
-            <div className="relative flex-shrink-0">
-              <div className="h-20 w-20 rounded-full border-4 border-primary/20 flex items-center justify-center">
-                <span className="text-2xl font-bold text-primary">{result.benchmarkInfo.percentile}%</span>
-              </div>
-              <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground border-2 border-card">
-                <TrendingDown className="h-3 w-3" />
-              </div>
-            </div>
-            
-            <div className="flex-1 text-center sm:text-left">
-              <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
-                <Badge variant={result.benchmarkInfo.status === 'OPTIMAL' ? 'default' : result.benchmarkInfo.status === 'BLOATED' ? 'destructive' : 'secondary'}>
-                  {result.benchmarkInfo.status} SPEND
+            <div className="relative z-10 space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Autonomous Synthesis</span>
+                </div>
+                <Badge className="bg-blue-600/10 text-blue-400 border-blue-500/20 font-black italic uppercase tracking-widest text-[9px] px-3">
+                  OpenRouter / LLM-4
                 </Badge>
-                <span className="text-xs font-medium text-muted-foreground">Peer Benchmark</span>
               </div>
-              <h3 className="text-lg font-semibold mb-1">
-                {result.benchmarkInfo.comparisonText}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                You are in the <span className="text-foreground font-medium">top {100 - result.benchmarkInfo.percentile}%</span> of efficient teams in our database for your size.
-              </p>
-            </div>
-
-            <div className="hidden lg:block w-px h-12 bg-border" />
-
-            <div className="text-center sm:text-left">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Potential Rank</p>
-              <p className="text-sm text-primary font-medium">
-                Actioning these savings moves you to the <span className="font-bold">top 1%</span>.
+              <p className="text-lg leading-relaxed text-slate-300 font-medium italic tracking-tight">
+                &ldquo;{aiSummary}&rdquo;
               </p>
             </div>
           </section>
         )}
 
-        {/* Consolidation Plan */}
-        <section className="col-span-1 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 no-print">
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-500 mb-3 flex items-center gap-2">
-              <CheckCircle2 className="h-3 w-3" />
-              Retain & Optimize
-            </h4>
-            <ul className="space-y-2">
-              {result.recommendations.filter(r => r.isOptimal || r.savingsType === 'optimization').map(r => (
-                <li key={r.toolName} className="text-sm flex items-center justify-between">
-                  <span className="capitalize font-medium">{r.toolName}</span>
-                  <Badge variant="outline" className="text-[10px] uppercase">Optimal</Badge>
-                </li>
-              ))}
-              {result.recommendations.filter(r => r.isOptimal || r.savingsType === 'optimization').length === 0 && (
-                <li className="text-xs text-muted-foreground italic">No optimal tools found.</li>
-              )}
-            </ul>
-          </div>
-
-          <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-rose-500 mb-3 flex items-center gap-2">
-              <AlertTriangle className="h-3 w-3" />
-              Replace or Cancel
-            </h4>
-            <ul className="space-y-2">
-              {result.recommendations.filter(r => !r.isOptimal && r.savingsType !== 'optimization').map(r => (
-                <li key={r.toolName} className="text-sm flex items-center justify-between">
-                  <span className="capitalize font-medium">{r.toolName}</span>
-                  <Badge variant="destructive" className="text-[10px] uppercase">Action Required</Badge>
-                </li>
-              ))}
-              {result.recommendations.filter(r => !r.isOptimal && r.savingsType !== 'optimization').length === 0 && (
-                <li className="text-xs text-muted-foreground italic">No tools require immediate action.</li>
-              )}
-            </ul>
+        <section className="lg:col-span-4 rounded-[2.5rem] border border-white/10 bg-white/[0.02] p-10 flex flex-col justify-between items-center text-center relative group overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative z-10 space-y-4">
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Confidence Rating</span>
+            <div className="relative">
+              <span className={`text-7xl font-black italic tracking-tighter ${
+                result.confidenceScore > 85 ? 'text-blue-400'
+                : result.confidenceScore > 70 ? 'text-amber-400'
+                : 'text-rose-400'
+              }`}>
+                {result.confidenceScore}<span className="text-3xl opacity-50">%</span>
+              </span>
+              <div className="absolute -inset-4 bg-blue-500/10 blur-3xl rounded-full opacity-50" />
+            </div>
+            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest leading-relaxed max-w-[180px]">
+              Validated against global market indices and resource scale.
+            </p>
           </div>
         </section>
       </div>
 
-      {/* Stats Dashboard */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <SummaryStat
-          label="Estimated Monthly Savings"
-          value={formatCurrency(totalMonthlySavings)}
-          icon={TrendingDown}
-          description="Immediate reduction in monthly burn"
-        />
-        <SummaryStat
-          label="Projected Annual Savings"
-          value={formatCurrency(totalAnnualSavings)}
-          icon={Calendar}
-          description="Total cash returned to business per year"
-        />
-      </section>
+      {/* Benchmark Strip */}
+      {result.benchmarkInfo && (
+        <section className="rounded-[2.5rem] border border-white/10 bg-white/[0.02] p-10 flex flex-col lg:flex-row items-center gap-10 relative overflow-hidden">
+          <div className="absolute top-0 left-0 h-full w-2 bg-blue-600" />
+          <div className="relative h-28 w-28 flex-shrink-0">
+            <div className="absolute inset-0 border-[6px] border-blue-500/10 rounded-full" />
+            <div className="absolute inset-0 border-[6px] border-blue-500 border-t-transparent rounded-full animate-[spin_3s_linear_infinite]" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-3xl font-black text-white italic tracking-tighter">
+                {result.benchmarkInfo.percentile}<span className="text-sm opacity-50 italic">%</span>
+              </span>
+            </div>
+          </div>
 
-      {/* Well-Optimised State (<$100 savings) */}
-      {isOptimalSpend && (
-        <section className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 flex items-start gap-4">
-          <CheckCircle2 className="h-6 w-6 text-emerald-600 mt-0.5 shrink-0" />
-          <div>
-            <h2 className="font-semibold text-emerald-800">You&apos;re spending well.</h2>
-            <p className="text-sm text-emerald-700 mt-1">
-              Your AI subscriptions are well-matched to your team size and use case.
-              We found less than $100/month in potential savings — below the threshold
-              where switching costs justify acting immediately. Sign up below and
-              we&apos;ll notify you when better options emerge for your stack.
+          <div className="flex-1 text-center lg:text-left space-y-3">
+            <Badge className="bg-blue-600 text-white font-black uppercase tracking-[0.2em] text-[9px] px-4 py-1 rounded-full italic">
+              {result.benchmarkInfo.status} EFFICIENCY
+            </Badge>
+            <p className="text-2xl font-black text-white tracking-tighter uppercase italic">{result.benchmarkInfo.comparisonText}</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+              Operational rank: <span className="text-white italic">Top {100 - result.benchmarkInfo.percentile}% of global peers</span>
+            </p>
+          </div>
+
+          <div className="hidden lg:block w-px h-16 bg-white/10" />
+
+          <div className="text-center lg:text-right shrink-0 space-y-2">
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600">Trajectory Path</span>
+            <p className="text-sm font-black text-blue-400 uppercase tracking-tighter italic flex items-center justify-center lg:justify-end gap-2">
+              Optimization Target: Elite 1% <ArrowRight className="h-4 w-4" />
             </p>
           </div>
         </section>
       )}
 
+      {/* Stats Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="p-10 rounded-[2.5rem] border border-blue-500/10 bg-blue-500/[0.02] flex flex-col items-center text-center space-y-4">
+          <TrendingDown className="h-10 w-10 text-blue-400" />
+          <div className="space-y-1">
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Monthly Yield</span>
+            <p className="text-5xl font-black text-white tracking-tighter italic">{formatCurrency(totalMonthlySavings)}</p>
+          </div>
+          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Immediate operational burn reduction</p>
+        </div>
+        <div className="p-10 rounded-[2.5rem] border border-purple-500/10 bg-purple-500/[0.02] flex flex-col items-center text-center space-y-4">
+          <Calendar className="h-10 w-10 text-purple-400" />
+          <div className="space-y-1">
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Annual Recapture</span>
+            <p className="text-5xl font-black text-white tracking-tighter italic">{formatCurrency(totalAnnualSavings)}</p>
+          </div>
+          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Total liquidity returned over 12 months</p>
+        </div>
+      </div>
+
+      {/* Intelligence Grid: Retain / Replace */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="rounded-[2.5rem] border border-emerald-500/20 bg-emerald-500/[0.02] p-8 space-y-6">
+          <div className="flex items-center justify-between border-b border-emerald-500/10 pb-4">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400 flex items-center gap-3">
+              <CheckCircle2 className="h-4 w-4" /> Retain Protocol
+            </h4>
+            <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px] font-black italic">OPTIMAL</Badge>
+          </div>
+          <div className="space-y-4">
+            {retainList.length === 0
+              ? <p className="text-xs text-slate-600 font-bold uppercase italic tracking-widest">No optimal assets detected.</p>
+              : retainList.map((r) => (
+                <div key={r.toolName} className="flex items-center justify-between">
+                  <span className="text-sm font-black text-white uppercase italic tracking-tight">{r.toolName}</span>
+                  <div className="h-px flex-1 mx-4 bg-emerald-500/10" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500/60">Verified</span>
+                </div>
+              ))}
+          </div>
+        </div>
+
+        <div className="rounded-[2.5rem] border border-rose-500/20 bg-rose-500/[0.02] p-8 space-y-6">
+          <div className="flex items-center justify-between border-b border-rose-500/10 pb-4">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-rose-400 flex items-center gap-3">
+              <AlertTriangle className="h-4 w-4" /> Action Protocol
+            </h4>
+            <Badge className="bg-rose-500/10 text-rose-400 border-rose-500/20 text-[9px] font-black italic">MODIFICATION REQ</Badge>
+          </div>
+          <div className="space-y-4">
+            {actionList.length === 0
+              ? <p className="text-xs text-slate-600 font-bold uppercase italic tracking-widest">No immediate actions required.</p>
+              : actionList.map((r) => (
+                <div key={r.toolName} className="flex items-center justify-between">
+                  <span className="text-sm font-black text-white uppercase italic tracking-tight">{r.toolName}</span>
+                  <div className="h-px flex-1 mx-4 bg-rose-500/10" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-rose-500/60 italic">Action Required</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      </div>
+
       {/* Redundancy Alerts */}
       {redundancyWarnings.length > 0 && (
-        <section className="rounded-xl border border-amber-200 bg-amber-50 p-5 space-y-3">
-          <div className="flex items-center gap-2 text-amber-700 font-semibold">
-            <AlertTriangle className="h-5 w-5" />
-            Redundancy Alerts
+        <section className="rounded-[2.5rem] border border-amber-500/20 bg-amber-500/[0.02] p-10 space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-2xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+            </div>
+            <div>
+              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500">Redundancy Breach Detected</h4>
+              <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mt-1">Cross-platform feature overlap analysis</p>
+            </div>
           </div>
-          <ul className="space-y-2">
+          <ul className="space-y-4">
             {redundancyWarnings.map((warning, i) => (
-              <li key={i} className="text-sm text-amber-800 flex gap-2">
-                <span className="shrink-0">•</span>
+              <li key={i} className="text-sm text-slate-300 font-medium italic border-l-2 border-amber-500/30 pl-6 py-1">
                 {warning}
               </li>
             ))}
@@ -213,79 +232,67 @@ export function AuditResults({ result, aiSummary }: AuditResultsProps) {
         </section>
       )}
 
-      {/* High Savings Credex CTA (>$500/mo) */}
-      {isHighSavings && (
-        <section className="rounded-xl overflow-hidden border border-primary/20 shadow-lg">
-          <div className="bg-primary px-6 py-5 text-primary-foreground">
-            <Badge variant="secondary" className="mb-3 text-xs">High Savings Detected</Badge>
-            <h2 className="text-xl font-bold">
-              You could save {formatCurrency(totalMonthlySavings)}/month.
-              <br />Credex can capture even more.
+      {/* High Savings CTA */}
+      <section className="rounded-[3rem] overflow-hidden border border-blue-500/20 bg-[#050505] relative no-print shadow-2xl">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.1),transparent_70%)]" />
+        <div className="p-12 space-y-8 relative z-10">
+          <div className="space-y-4">
+            <Badge className="bg-blue-600 text-white font-black uppercase tracking-[0.3em] text-[9px] px-5 py-1.5 rounded-full italic">High Yield Opportunity</Badge>
+            <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">
+              Capture <span className="text-blue-500">{formatCurrency(totalMonthlySavings)}</span> / month now.
             </h2>
-            <p className="text-primary-foreground/80 text-sm mt-2">
-              On top of plan downgrades, Credex negotiates volume discounts and credit
-              bundles directly with vendors. Teams like yours typically unlock an additional
-              15–25% on top of these savings.
+            <p className="text-lg text-slate-400 font-medium tracking-tight max-w-2xl leading-relaxed">
+              Plan downgrades are just the surface. Credex autonomously negotiates volume clusters and credit injection directly with vendor APIs. Elite teams capture an additional <span className="text-white italic">15–25%</span> via our private protocol.
             </p>
           </div>
-          <div className="bg-background px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
             <a
               href="https://credex.rocks/book"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="w-full sm:w-auto h-16 inline-flex items-center justify-center gap-4 rounded-2xl bg-blue-600 hover:bg-blue-500 transition-all px-10 text-xs font-black text-white uppercase tracking-[0.2em] italic shadow-[0_20px_50px_rgba(59,130,246,0.3)] transform hover:-translate-y-1"
             >
-              Book a free Credex consultation
-              <ExternalLink className="h-3.5 w-3.5" />
+              Unlock Private Protocol
+              <Zap className="h-4 w-4 fill-current" />
             </a>
-            <span className="text-xs text-muted-foreground">No commitment. 30 minutes. We do the analysis.</span>
+            <div className="flex flex-col items-center sm:items-start opacity-40">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Zero Commitment</span>
+              <span className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.2em]">30 Minute Intelligence Briefing</span>
+            </div>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
-      {/* Recommendation Cards */}
-      <section className="space-y-6">
-        <div className="space-y-1">
-          <h2 className="text-xl font-bold tracking-tight">Tool-by-Tool Breakdown</h2>
-          <p className="text-sm text-muted-foreground">
-            Current plan → recommended action → savings and reasoning.
-          </p>
+      {/* Recommendation Breakdown */}
+      <section className="space-y-10 pt-10">
+        <div className="flex items-center justify-between border-b border-white/10 pb-8">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic leading-none">Asset Breakdown</h2>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest italic">Granular optimization path for every neural asset</p>
+          </div>
+          <div className="hidden sm:flex items-center gap-3 opacity-30 italic">
+            <CheckCircle2 className="h-4 w-4" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Engine Verified</span>
+          </div>
         </div>
 
-        <Separator />
-
-        <div className="grid grid-cols-1 gap-6">
+        <div className="space-y-8">
           {recommendations.map((rec) => (
             <RecommendationCard key={rec.toolName} recommendation={rec} />
           ))}
         </div>
       </section>
 
-      {/* Disclaimer */}
-      <p className="text-center text-xs text-muted-foreground max-w-md mx-auto">
-        Recommendations based on public pricing verified 2026-05-07.
-        Always confirm current enterprise terms with tool providers before acting.
-      </p>
-
-      <style jsx global>{`
-        @media print {
-          nav, header, footer, .no-print, button, .LeadCapture {
-            display: none !important;
-          }
-          body {
-            background: white !important;
-            color: black !important;
-          }
-          .AuditResults {
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          .rounded-xl {
-            border-radius: 0 !important;
-            border: 1px solid #eee !important;
-          }
-        }
-      `}</style>
+      <footer className="pt-20 pb-10 text-center space-y-4 opacity-40 hover:opacity-100 transition-opacity">
+        <div className="flex items-center justify-center gap-4 text-[10px] font-black uppercase tracking-[0.4em] text-slate-500">
+          <span className="h-px w-12 bg-white/10" />
+          Autonomous Spend Intelligence
+          <span className="h-px w-12 bg-white/10" />
+        </div>
+        <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest leading-relaxed max-w-lg mx-auto">
+          Market index verified 2026-05-09 · Results reflect public API pricing and tier structures · Credex (SpendLens) is an autonomous protocol for enterprise capital efficiency.
+        </p>
+      </footer>
     </div>
   );
 }

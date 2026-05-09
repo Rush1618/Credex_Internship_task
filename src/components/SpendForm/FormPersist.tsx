@@ -14,8 +14,14 @@ export function useFormPersist(
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        const parsed = JSON.parse(saved) as AuditInput;
-        setValue(parsed);
+        const parsed = JSON.parse(saved) as Partial<AuditInput>;
+        setValue({
+          email: parsed.email || '',
+          company: parsed.company || '',
+          tools: Array.isArray(parsed.tools) ? parsed.tools : [],
+          teamSize: parsed.teamSize || '2-5',
+          useCase: parsed.useCase || 'coding',
+        });
       }
     } catch {
       // ignore malformed data
