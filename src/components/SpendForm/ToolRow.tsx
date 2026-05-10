@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { X, Zap, Sparkles, Terminal, Github, Search, Palette, Users, DollarSign } from 'lucide-react';
+import { X, Zap, Sparkles, Terminal, GitBranch, Search, Palette, Users, DollarSign } from 'lucide-react';
 
 const TOOL_LABELS: Record<ToolName, string> = {
   cursor: 'Cursor',
@@ -55,7 +55,7 @@ export function ToolRow({ tool, index, onChange, onRemove }: ToolRowProps) {
       case 'chatgpt': return <Zap className="h-5 w-5" />;
       case 'claude': return <Sparkles className="h-5 w-5" />;
       case 'cursor': return <Terminal className="h-5 w-5" />;
-      case 'github-copilot': return <Github className="h-5 w-5" />;
+      case 'github-copilot': return <GitBranch className="h-5 w-5" />;
       case 'windsurf': return <Search className="h-5 w-5" />;
       default: return <span className="font-black italic">{tool.name.charAt(0).toUpperCase()}</span>;
     }
