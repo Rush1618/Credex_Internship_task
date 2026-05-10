@@ -154,3 +154,4 @@
 
 **Total Time:** ~23 hours
 **Final Status:** SpendLens production-ready with high-fidelity native exports and enterprise-grade UI.
+**Live Deployment:** [credex-spend-lens.vercel.app](https://credex-internship-task-2xxaefdep-rushabh-s-projects1.vercel.app/)
