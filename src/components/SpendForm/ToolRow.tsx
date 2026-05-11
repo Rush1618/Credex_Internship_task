@@ -2,7 +2,6 @@
 
 import { ToolInput, ToolName } from '@/types';
 import { TOOL_PRICING } from '@/lib/pricing-data';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -11,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { X, Zap, Sparkles, Terminal, GitBranch, Search, Palette, Users, DollarSign } from 'lucide-react';
+import { X, Zap, Sparkles, Terminal, GitBranch, Search, Users, DollarSign, Activity } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const TOOL_LABELS: Record<ToolName, string> = {
   cursor: 'Cursor',
@@ -37,7 +37,6 @@ export function ToolRow({ tool, index, onChange, onRemove }: ToolRowProps) {
   const update = (field: keyof ToolInput, value: string | number) => {
     let updatedTool = { ...tool, [field]: value };
 
-    // Smart logic: auto-calculate spend when plan or seats change
     if (field === 'plan' || field === 'seats') {
       const selectedPlan = plans.find(p => p.planId === (field === 'plan' ? value : tool.plan));
       if (selectedPlan && !selectedPlan.isEnterprise) {
@@ -57,95 +56,97 @@ export function ToolRow({ tool, index, onChange, onRemove }: ToolRowProps) {
       case 'cursor': return <Terminal className="h-5 w-5" />;
       case 'github-copilot': return <GitBranch className="h-5 w-5" />;
       case 'windsurf': return <Search className="h-5 w-5" />;
-      default: return <span className="font-black italic">{tool.name.charAt(0).toUpperCase()}</span>;
+      default: return <Activity className="h-5 w-5" />;
     }
   };
 
   return (
-    <div className="group relative rounded-[2.5rem] border border-white/10 bg-white/[0.02] p-8 shadow-2xl transition-all hover:bg-white/[0.04] hover:border-white/20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="group relative rounded-[3rem] border border-white/5 bg-white/[0.01] p-10 backdrop-blur-md transition-all hover:bg-white/[0.03] hover:border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.2)]">
       {/* Remove button */}
-      <div className="absolute top-6 right-6">
-        <button
-          onClick={() => onRemove(index)}
-          className="p-3 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all opacity-0 group-hover:opacity-100"
-          aria-label={`Remove ${TOOL_LABELS[tool.name]}`}
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
+      <button
+        onClick={() => onRemove(index)}
+        className="absolute -top-3 -right-3 h-10 w-10 flex items-center justify-center bg-[#0a0a0a] border border-white/10 text-slate-600 hover:text-rose-500 hover:border-rose-500/50 rounded-full transition-all opacity-0 group-hover:opacity-100 shadow-xl z-20"
+      >
+        <X className="h-4 w-4" />
+      </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-        {/* Tool Branding */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="flex items-center gap-5">
-            <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-transform group-hover:scale-110">
-              {getIcon()}
-            </div>
-            <div>
-              <h3 className="text-xl font-black text-white tracking-tighter uppercase italic leading-none">{TOOL_LABELS[tool.name]}</h3>
-              <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mt-2 italic">Neural Asset {index + 1}</p>
-            </div>
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-12 items-center">
+        {/* Left Column: Identity & Tier */}
+        <div className="xl:col-span-5 flex flex-col sm:flex-row gap-8 items-start sm:items-center">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[2rem] bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.1)] transition-transform group-hover:scale-105 group-hover:rotate-3 duration-500">
+            {getIcon()}
           </div>
-          
-          <div className="space-y-3">
-            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Protocol Tier</Label>
-            <Select value={tool.plan} onValueChange={(v) => v && update('plan', v)}>
-              <SelectTrigger className="h-14 bg-white/[0.03] border-white/10 text-white rounded-2xl font-bold px-5">
-                <SelectValue placeholder="Select plan" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#0a0a0a] border-white/10 text-white rounded-2xl shadow-2xl p-2">
-                {plans.map((p) => (
-                  <SelectItem key={p.planId} value={p.planId} className="rounded-xl focus:bg-blue-600 font-bold uppercase text-[10px] tracking-widest py-3">
-                    {p.planLabel}{p.isEnterprise ? ' (Custom)' : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-5 flex-1 w-full">
+            <div>
+              <h3 className="text-2xl font-black text-white tracking-tighter uppercase italic leading-none">{TOOL_LABELS[tool.name]}</h3>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Asset Sync Active</p>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 ml-1">Subscription Protocol</Label>
+              <Select value={tool.plan} onValueChange={(v) => v && update('plan', v)}>
+                <SelectTrigger className="h-14 bg-white/[0.02] border-white/5 text-white rounded-2xl font-bold px-6 focus:ring-blue-500/20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0a0a0a] border-white/10 text-white rounded-2xl shadow-2xl p-2">
+                  {plans.map((p) => (
+                    <SelectItem key={p.planId} value={p.planId} className="rounded-xl focus:bg-blue-600 font-bold uppercase text-[10px] tracking-widest py-4">
+                      {p.planLabel}{p.isEnterprise ? ' (Custom)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
-        {/* Financial Parameters */}
-        <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-8">
+        {/* Right Column: Parameters */}
+        <div className="xl:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-8 bg-black/20 p-8 rounded-[2.5rem] border border-white/5">
           <div className="space-y-3">
-            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">User Capacity</Label>
+            <Label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 ml-1">Node Capacity</Label>
             <div className="relative group/input">
-              <Users className="absolute left-5 h-4 w-4 text-slate-600 group-focus-within/input:text-blue-500 transition-colors" />
+              <Users className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-700 group-focus-within/input:text-blue-500 transition-colors" />
               <input
                 type="number"
                 min="1"
-                step="1"
                 value={tool.seats || ''}
                 onChange={(e) => update('seats', parseInt(e.target.value, 10) || 1)}
-                className="w-full h-14 bg-white/[0.03] border border-white/10 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 text-white rounded-2xl pl-14 pr-5 outline-none transition-all font-bold placeholder:text-slate-700"
+                className="w-full h-16 bg-white/[0.02] border border-white/5 focus:border-blue-500/30 focus:ring-4 focus:ring-blue-500/5 text-white rounded-2xl pl-16 pr-6 outline-none transition-all font-bold text-lg"
               />
             </div>
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Total Monthly Burn</Label>
+            <Label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 ml-1">Resource Burn / Mo</Label>
             <div className="relative group/input">
-              <DollarSign className="absolute left-5 h-4 w-4 text-slate-600 group-focus-within/input:text-blue-400 transition-colors" />
+              <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-700 group-focus-within/input:text-emerald-500 transition-colors" />
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={tool.monthlySpend || ''}
                 onChange={(e) => update('monthlySpend', parseFloat(e.target.value) || 0)}
-                className="w-full h-14 bg-white/[0.03] border border-white/10 focus:border-blue-400/50 focus:ring-4 focus:ring-blue-400/10 text-blue-400 rounded-2xl pl-14 pr-5 outline-none transition-all font-black placeholder:text-slate-700"
+                className="w-full h-16 bg-white/[0.02] border border-white/5 focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/5 text-emerald-400 rounded-2xl pl-16 pr-6 outline-none transition-all font-black text-lg"
               />
             </div>
           </div>
 
-          <div className="sm:col-span-2 p-6 rounded-[2rem] bg-gradient-to-br from-blue-500/5 to-purple-500/5 border border-white/5 flex items-center justify-between">
-            <div className="space-y-1">
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Resource Efficiency Index</span>
-              <p className="text-[9px] font-bold text-blue-400/60 uppercase tracking-widest italic">Autonomous verification active</p>
+          <div className="sm:col-span-2 flex items-center justify-between pt-2">
+            <div className="flex gap-4">
+              <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/5 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                Tier: {plans.find(p => p.planId === tool.plan)?.planLabel || 'Custom'}
+              </div>
+              <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/5 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                Unit: ${((tool.monthlySpend || 0) / (tool.seats || 1)).toFixed(2)}
+              </div>
             </div>
             <div className="text-right">
               <span className="text-3xl font-black text-white tracking-tighter italic">
                 ${(tool.monthlySpend || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
-              <span className="text-[10px] font-black text-slate-600 ml-3 uppercase tracking-widest italic">USD / MO</span>
             </div>
           </div>
         </div>
