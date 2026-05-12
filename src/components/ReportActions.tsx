@@ -22,13 +22,16 @@ export function ReportActions({ uuid, isHighSavings }: ReportActionsProps) {
     try {
       setIsExporting(true);
       const response = await fetch(`/api/audit/${uuid}/export`);
-      if (!response.ok) throw new Error('Failed to export PDF');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Export failed with status ${response.status}`);
+      }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `SpendLens_Audit_${uuid.slice(0, 8)}.pdf`;
+      a.download = `Audit_Report_${uuid.slice(0, 8)}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

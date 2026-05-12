@@ -53,7 +53,7 @@ export interface AuditResult {
     comparisonText: string; // e.g. "30% higher than peer average"
     status: 'OPTIMAL' | 'EFFICIENT' | 'BLOATED';
   };
-  aiSummary?: string;          // populated after OpenRouter API call
+  aiSummary?: string;          // populated after AI synthesis call
 }
 
 export interface Lead {

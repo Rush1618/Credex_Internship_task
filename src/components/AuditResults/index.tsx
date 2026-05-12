@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuditResult } from '@/types';
 import { RecommendationCard } from './RecommendationCard';
 import { SummaryStat } from './SummaryStat';
@@ -8,7 +8,7 @@ import { SummaryStat } from './SummaryStat';
 export { RecommendationCard, SummaryStat };
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { TrendingDown, Calendar, AlertTriangle, CheckCircle2, ExternalLink, Sparkles, Printer, Share2, ArrowRight, Zap } from 'lucide-react';
+import { TrendingDown, Calendar, AlertTriangle, CheckCircle2, ExternalLink, Sparkles, Download, Share2, ArrowRight, Zap } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 
@@ -20,6 +20,11 @@ interface AuditResultsProps {
 
 export function AuditResults({ uuid, result, aiSummary }: AuditResultsProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const {
     totalMonthlySavings,
@@ -28,8 +33,32 @@ export function AuditResults({ uuid, result, aiSummary }: AuditResultsProps) {
     redundancyWarnings,
   } = result;
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownload = async () => {
+    try {
+      setIsExporting(true);
+      const response = await fetch(`/api/audit/${uuid}/export`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const detailedError = errorData.message || errorData.error || `Status ${response.status}`;
+        console.error('Export error details:', errorData);
+        throw new Error(detailedError);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Audit_Report_${uuid.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: any) {
+      console.error('Download error:', err);
+      alert(`Failed to generate PDF: ${err.message || 'Unknown error'}. Please try again.`);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const isOptimalSpend = totalMonthlySavings < 100 && recommendations.every((r) => r.isOptimal);
@@ -46,7 +75,9 @@ export function AuditResults({ uuid, result, aiSummary }: AuditResultsProps) {
             Audit Terminal Active
           </Badge>
           <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">Intelligence Report</h1>
-          <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">ID: {uuid.slice(0, 12)} · Verified {new Date().toLocaleDateString()}</p>
+          <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">
+            ID: {uuid.slice(0, 12)} · {mounted ? `Verified ${new Date().toLocaleDateString()}` : 'Verifying...'}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <Button 
@@ -59,10 +90,12 @@ export function AuditResults({ uuid, result, aiSummary }: AuditResultsProps) {
           </Button>
           <Button 
             size="lg" 
-            className="h-14 px-8 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-[10px] italic gap-3 shadow-[0_0_30px_rgba(59,130,246,0.3)] transition-all transform hover:-translate-y-1"
-            onClick={handlePrint}
+            disabled={isExporting}
+            className="h-14 px-8 rounded-2xl bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white font-black uppercase tracking-widest text-[10px] italic gap-3 shadow-[0_0_30px_rgba(59,130,246,0.3)] transition-all transform hover:-translate-y-1"
+            onClick={handleDownload}
           >
-            <Printer className="h-4 w-4" /> Print Audit
+            <Download className="h-4 w-4" /> 
+            {isExporting ? 'Exporting...' : 'Download Audit'}
           </Button>
         </div>
       </div>
@@ -80,9 +113,6 @@ export function AuditResults({ uuid, result, aiSummary }: AuditResultsProps) {
                   <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
                   <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Autonomous Synthesis</span>
                 </div>
-                <Badge className="bg-blue-600/10 text-blue-400 border-blue-500/20 font-black italic uppercase tracking-widest text-[9px] px-3">
-                  OpenRouter / LLM-4
-                </Badge>
               </div>
               <p className="text-lg leading-relaxed text-slate-300 font-medium italic tracking-tight">
                 &ldquo;{aiSummary}&rdquo;

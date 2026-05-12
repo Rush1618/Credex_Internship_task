@@ -45,7 +45,7 @@ export default function HomePage() {
           <div className="max-w-5xl mx-auto">
             <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-blue-500/5 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] mb-10 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
               <Zap className="h-3 w-3 fill-current animate-pulse" />
-              Live: OpenRouter V2 Model Sync
+              Live: Neural Engine V4 Sync
             </div>
             
             <h1 className="text-7xl md:text-[10rem] font-black tracking-[-0.05em] mb-8 leading-[0.85] bg-gradient-to-b from-white via-white to-white/20 bg-clip-text text-transparent drop-shadow-2xl">
@@ -83,7 +83,7 @@ export default function HomePage() {
         <div className="container mx-auto px-6 relative z-10">
           <p className="text-center text-slate-600 text-[10px] font-black uppercase tracking-[0.4em] mb-12">Industrial Grade Security Architecture</p>
           <div className="flex flex-wrap justify-center items-center gap-10 md:gap-20 opacity-30 hover:opacity-60 transition-opacity">
-            {['VERCEL', 'SUPABASE', 'LINEAR', 'OPENROUTER', 'ANTHROPIC'].map(brand => (
+            {['VERCEL', 'SUPABASE', 'LINEAR', 'CLAUDE', 'ANTHROPIC'].map(brand => (
               <span key={brand} className="text-xl md:text-2xl font-black tracking-tighter italic">{brand}</span>
             ))}
           </div>

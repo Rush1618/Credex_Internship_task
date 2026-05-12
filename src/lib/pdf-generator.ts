@@ -1,4 +1,4 @@
-import PDFDocument from 'pdfkit';
+import PDFDocument from 'pdfkit/js/pdfkit.standalone';
 import { AuditResult } from './audit-engine';
 
 // -- Palette ------------------------------------------------------------------
@@ -51,16 +51,27 @@ export async function generateAuditPDF(
   userEmail: string = ''
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({
-      size: 'A4',
-      margins: { top: 30, bottom: 30, left: 40, right: 40 },
-      bufferPages: true,
-    });
-
     const chunks: Buffer[] = [];
-    doc.on('data', (chunk) => chunks.push(chunk));
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-    doc.on('error', reject);
+    
+    try {
+      console.log('[pdf-generator] Starting generation for:', result?.companyName);
+      const doc = new PDFDocument({
+        size: 'A4',
+        margins: { top: 30, bottom: 30, left: 40, right: 40 },
+        bufferPages: true,
+      });
+      if (!result) throw new Error('No audit result provided to PDF generator');
+      if (!result.recommendations) result.recommendations = [];
+
+      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('end', () => {
+        console.log('[pdf-generator] PDF generation complete, buffer size:', Buffer.concat(chunks).length);
+        resolve(Buffer.concat(chunks));
+      });
+      doc.on('error', (err) => {
+        console.error('[pdf-generator] PDFKit error:', err);
+        reject(err);
+      });
 
     const PAGE_W = 595.28;
     const ML = 40;
@@ -89,24 +100,28 @@ export async function generateAuditPDF(
     const gap = IW * 0.05;
     const confW = IW - aiW - gap;
 
-    // AI Card
-    doc.roundedRect(ML, y, aiW, rowH, 4).fillAndStroke(COLORS.LITE, COLORS.BDR);
-    doc.font('Helvetica-Bold').fontSize(6).fillColor(COLORS.MID).text('AI ANALYSIS · OPENROUTER', ML + 10, y + 10);
-    
+    // AI Analysis - DYNAMIC HEIGHT
     const aiText = aiSummary || 'Analysis complete. Redundancies identified in your AI stack.';
-    doc.font('Helvetica').fontSize(7.5).fillColor(COLORS.DARK).text(aiText, ML + 10, y + 22, { width: aiW - 20, lineGap: 2 });
+    const aiContentWidth = aiW - 20;
+    const aiTextHeight = doc.heightOfString(aiText, { width: aiContentWidth, lineGap: 2 });
+    const dynamicRowH = Math.max(70, aiTextHeight + 35);
 
-    // Confidence Card
+    // AI Card
+    doc.roundedRect(ML, y, aiW, dynamicRowH, 4).fillAndStroke(COLORS.LITE, COLORS.BDR);
+    doc.font('Helvetica-Bold').fontSize(6).fillColor(COLORS.MID).text('AI ANALYSIS · AUTONOMOUS SYNTHESIS', ML + 10, y + 10);
+    doc.font('Helvetica').fontSize(7.5).fillColor(COLORS.DARK).text(aiText, ML + 10, y + 22, { width: aiContentWidth, lineGap: 2 });
+
+    // Confidence Card (align height with AI card)
     const confX = ML + aiW + gap;
-    doc.roundedRect(confX, y, confW, rowH, 4).fillAndStroke(COLORS.WHITE, COLORS.BDR);
+    doc.roundedRect(confX, y, confW, dynamicRowH, 4).fillAndStroke(COLORS.WHITE, COLORS.BDR);
     doc.font('Helvetica-Bold').fontSize(6).fillColor(COLORS.MID).text('AUDIT CONFIDENCE', confX + 10, y + 10);
     
     const conf = result.confidenceScore || 95;
     const confColor = conf > 85 ? COLORS.E600 : conf > 70 ? COLORS.A600 : COLORS.R600;
     doc.font('Helvetica-Bold').fontSize(24).fillColor(confColor).text(`${conf}%`, confX + 10, y + 22);
-    doc.font('Helvetica').fontSize(6).fillColor(COLORS.MID).text('Based on tool metadata & market benchmarks.', confX + 10, y + 50, { width: confW - 20 });
+    doc.font('Helvetica').fontSize(6).fillColor(COLORS.MID).text('Based on tool metadata & market benchmarks.', confX + 10, y + dynamicRowH - 20, { width: confW - 20 });
 
-    y += rowH + 15;
+    y += dynamicRowH + 15;
 
     // -- Stats ---------------------------------------------------------------
     const statW = (IW - 10) / 2;
@@ -114,14 +129,14 @@ export async function generateAuditPDF(
     // Monthly Savings
     doc.roundedRect(ML, y, statW, 55, 4).fillAndStroke(COLORS.LITE, COLORS.BDR);
     doc.font('Helvetica-Bold').fontSize(6).fillColor(COLORS.MID).text('MONTHLY SAVINGS', ML + 10, y + 10);
-    doc.font('Helvetica-Bold').fontSize(20).fillColor(COLORS.DARK).text(`$${result.totalMonthlySavings.toLocaleString()}`, ML + 10, y + 22);
+    doc.font('Helvetica-Bold').fontSize(20).fillColor(COLORS.DARK).text(`$${(result.totalMonthlySavings || 0).toLocaleString()}`, ML + 10, y + 22);
     doc.font('Helvetica').fontSize(6).fillColor(COLORS.MID).text('Immediate reduction in monthly burn', ML + 10, y + 42);
 
     // Annual Savings
     const annualX = ML + statW + 10;
     doc.roundedRect(annualX, y, statW, 55, 4).fillAndStroke(COLORS.LITE, COLORS.BDR);
     doc.font('Helvetica-Bold').fontSize(6).fillColor(COLORS.MID).text('ANNUAL SAVINGS', annualX + 10, y + 10);
-    doc.font('Helvetica-Bold').fontSize(20).fillColor(COLORS.DARK).text(`$${result.totalAnnualSavings.toLocaleString()}`, annualX + 10, y + 22);
+    doc.font('Helvetica-Bold').fontSize(20).fillColor(COLORS.DARK).text(`$${(result.totalAnnualSavings || 0).toLocaleString()}`, annualX + 10, y + 22);
     doc.font('Helvetica').fontSize(6).fillColor(COLORS.MID).text('Total cash returned to business per year', annualX + 10, y + 42);
 
     y += 70;
@@ -150,33 +165,45 @@ export async function generateAuditPDF(
     y += 5;
 
     result.recommendations.forEach((rec, i) => {
-      const isOptimal = rec.isOptimal || rec.savingsType === 'optimization';
+      // Calculate dynamic height for this row based on reasoning text
+      const reasonText = rec.reasoning?.[0] || ( (rec.isOptimal || rec.savingsType === 'optimization') ? 'Verified optimal usage.' : 'Potential for consolidation.');
+      const reasonWidth = IW * 0.35 - 10;
+      const reasonHeight = doc.heightOfString(reasonText, { width: reasonWidth, lineGap: 1 });
+      const rowHeight = Math.max(40, reasonHeight + 20);
+
+      // Page break check
+      if (y + rowHeight > 750) {
+        doc.addPage();
+        y = 50;
+        // Redraw table header on new page if desired (optional)
+      }
+
       const bgColor = i % 2 === 0 ? COLORS.WHITE : COLORS.LITE;
-      
-      const rowHeight = 35;
       doc.rect(ML, y, IW, rowHeight).fill(bgColor);
       
       const midY = y + 10;
 
       // Tool
-      doc.font('Helvetica-Bold').fontSize(8).fillColor(COLORS.DARK).text(TOOL_MAP[rec.toolName] || rec.toolName.toUpperCase(), cols.tool + 5, midY);
+      const toolLabel = rec.toolName ? (TOOL_MAP[rec.toolName] || rec.toolName.toUpperCase()) : 'Unknown Tool';
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(COLORS.DARK).text(toolLabel, cols.tool + 5, midY);
       doc.font('Helvetica').fontSize(6).fillColor(COLORS.MID).text(rec.currentPlan || 'Standard', cols.tool + 5, midY + 10);
 
       // Status
+      const isOptimal = rec.isOptimal || rec.savingsType === 'optimization';
       const badgeColor = isOptimal ? COLORS.E600 : COLORS.V700;
       const badgeBg = isOptimal ? COLORS.E100 : COLORS.V100;
-      const badgeText = isOptimal ? 'OPTIMAL' : rec.savingsType.toUpperCase();
+      const badgeText = isOptimal ? 'OPTIMAL' : (rec.savingsType?.toUpperCase() || 'SAVING');
       
       doc.roundedRect(cols.status, midY, 45, 12, 2).fill(badgeBg);
       doc.font('Helvetica-Bold').fontSize(6).fillColor(badgeColor).text(badgeText, cols.status, midY + 3, { width: 45, align: 'center' });
 
       // Savings
-      const saveText = rec.monthlySavings > 0 ? `$${rec.monthlySavings}/mo` : '—';
-      doc.font('Helvetica-Bold').fontSize(8).fillColor(rec.monthlySavings > 0 ? COLORS.V700 : COLORS.MID).text(saveText, cols.savings, midY + 2);
+      const monthlySavingsNum = Number(rec.monthlySavings || 0);
+      const saveText = monthlySavingsNum > 0 ? `$${monthlySavingsNum.toLocaleString()}/mo` : '—';
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(monthlySavingsNum > 0 ? COLORS.V700 : COLORS.MID).text(saveText, cols.savings, midY + 2);
 
       // Reasoning
-      const reasonText = rec.reasoning?.[0] || (isOptimal ? 'Verified optimal usage.' : 'Potential for consolidation.');
-      doc.font('Helvetica').fontSize(6.5).fillColor(COLORS.MID).text(reasonText, cols.reason, midY, { width: IW * 0.35 - 10, lineGap: 1 });
+      doc.font('Helvetica').fontSize(6.5).fillColor(COLORS.MID).text(reasonText, cols.reason, midY, { width: reasonWidth, lineGap: 1 });
 
       y += rowHeight;
       doc.strokeColor(COLORS.BDR).lineWidth(0.2).moveTo(ML, y).lineTo(ML + IW, y).stroke();
@@ -189,6 +216,15 @@ export async function generateAuditPDF(
       ML, bottom, { align: 'center', width: IW }
     );
 
-    doc.end();
+      doc.end();
+    } catch (err) {
+      console.error('[pdf-generator] Fatal generation error:', err);
+      reject(err);
+    }
+
+    // Safety timeout
+    setTimeout(() => {
+      reject(new Error('PDF generation timed out after 10s'));
+    }, 10000);
   });
 }

@@ -6,18 +6,13 @@ import { AuditInput, ToolInput, ToolName, UseCase, TeamSize } from '@/types';
 import { runAudit } from '@/lib/audit-engine';
 import { clearFormDraft, useFormPersist } from './FormPersist';
 import { ToolRow } from './ToolRow';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Plus, Zap, ChevronRight, ChevronLeft, ShieldCheck, Cpu, Database, LayoutPanelLeft, LineChart, Globe, Search } from 'lucide-react';
+import { Plus, Zap, ChevronRight, ChevronLeft, ShieldCheck, Cpu, Database, LayoutPanelLeft, LineChart, Globe, Search, Sparkles, Terminal, GitBranch } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { TOOL_PRICING } from '@/lib/pricing-data';
 import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const ALL_TOOLS: ToolName[] = [
   'cursor',
@@ -41,6 +36,17 @@ const TOOL_LABELS: Record<ToolName, string> = {
   windsurf: 'Windsurf',
 };
 
+const TOOL_ICONS: Record<ToolName, any> = {
+  cursor: Terminal,
+  'github-copilot': GitBranch,
+  claude: Sparkles,
+  chatgpt: Zap,
+  'anthropic-api': Cpu,
+  'openai-api': LayoutPanelLeft,
+  gemini: Globe,
+  windsurf: Search,
+};
+
 const DEFAULT_FORM: AuditInput = {
   email: '',
   company: '',
@@ -49,14 +55,25 @@ const DEFAULT_FORM: AuditInput = {
   useCase: 'coding',
 };
 
-function makeDefaultTool(name: ToolName): ToolInput {
+function getInitialSeats(size: TeamSize): number {
+  switch (size) {
+    case '1': return 1;
+    case '2-5': return 3;
+    case '6-20': return 10;
+    case '20-100': return 50;
+    case '100+': return 150;
+    default: return 1;
+  }
+}
+
+function makeDefaultTool(name: ToolName, teamSize: TeamSize): ToolInput {
   const plans = TOOL_PRICING[name] || [];
   let defaultPlan = plans.find(p => p.planId === 'pro' || p.planId === 'plus' || p.planId === 'individual');
   if (!defaultPlan) defaultPlan = plans.find(p => p.pricePerUserPerMonth > 0 || p.flatMonthlyPrice > 0);
   if (!defaultPlan) defaultPlan = plans[0];
 
   const planId = defaultPlan?.planId || 'pro';
-  const seats = defaultPlan?.minSeats || 1;
+  const seats = Math.max(defaultPlan?.minSeats || 1, getInitialSeats(teamSize));
   const spend = defaultPlan ? (defaultPlan.pricePerUserPerMonth * seats) + defaultPlan.flatMonthlyPrice : 0;
 
   return { 
@@ -80,7 +97,7 @@ export function SpendForm() {
 
   const addTool = (name: ToolName) => {
     if (form.tools.find((t) => t.name === name)) return;
-    setForm((f) => ({ ...f, tools: [...f.tools, makeDefaultTool(name)] }));
+    setForm((f) => ({ ...f, tools: [...f.tools, makeDefaultTool(name, f.teamSize)] }));
   };
 
   const updateTool = (index: number, updated: ToolInput) => {
@@ -93,6 +110,28 @@ export function SpendForm() {
 
   const removeTool = (index: number) => {
     setForm((f) => ({ ...f, tools: f.tools.filter((_, i) => i !== index) }));
+  };
+
+  const handleTeamSizeChange = (newSize: TeamSize) => {
+    const newSeats = getInitialSeats(newSize);
+    setForm((f) => ({
+      ...f,
+      teamSize: newSize,
+      tools: f.tools.map((t) => {
+        const plans = TOOL_PRICING[t.name] || [];
+        const currentPlan = plans.find(p => p.planId === t.plan) || plans[0];
+        const updatedSeats = Math.max(currentPlan?.minSeats || 1, newSeats);
+        const updatedSpend = currentPlan 
+          ? (currentPlan.pricePerUserPerMonth * updatedSeats) + currentPlan.flatMonthlyPrice 
+          : t.monthlySpend;
+        
+        return {
+          ...t,
+          seats: updatedSeats,
+          monthlySpend: Math.round(updatedSpend * 100) / 100
+        };
+      })
+    }));
   };
 
   const validateStep = (currentStep: Step) => {
@@ -120,6 +159,7 @@ export function SpendForm() {
     if (validateStep(step)) {
       if (step === 'context') setStep('inventory');
       else if (step === 'inventory') setStep('review');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -127,6 +167,7 @@ export function SpendForm() {
     if (step === 'inventory') setStep('context');
     else if (step === 'review') setStep('inventory');
     setError(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async () => {
@@ -229,7 +270,7 @@ export function SpendForm() {
                 <Label htmlFor="teamSize" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Resource Load</Label>
                 <Select
                   value={form.teamSize}
-                  onValueChange={(v) => setForm((f) => ({ ...f, teamSize: v as TeamSize }))}
+                  onValueChange={(v: TeamSize) => handleTeamSizeChange(v)}
                 >
                   <SelectTrigger className="h-16 bg-white/[0.03] border-white/10 text-white rounded-2xl px-6 font-bold text-lg">
                     <SelectValue />
@@ -242,11 +283,19 @@ export function SpendForm() {
                     <SelectItem value="100+" className="rounded-xl focus:bg-blue-600 font-bold uppercase text-[10px] tracking-widest py-4">Enterprise (100+)</SelectItem>
                   </SelectContent>
                 </Select>
+                {form.teamSize === '100+' && (
+                  <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest animate-pulse mt-2 ml-1">
+                    Enterprise Protocol Detected: Bulk discounts applicable.
+                  </p>
+                )}
               </div>
 
-              <div className="space-y-3 md:col-span-2">
-                <Label htmlFor="useCase" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Operational Focus</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="space-y-4 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Operational Focus</Label>
+                  <span className="text-[9px] font-bold text-blue-500/50 uppercase tracking-widest italic">Core Engine Parameter</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   {[
                     { id: 'coding', label: 'Engineering', icon: Cpu },
                     { id: 'writing', label: 'Synthesis', icon: LayoutPanelLeft },
@@ -256,16 +305,17 @@ export function SpendForm() {
                   ].map((u) => (
                     <button
                       key={u.id}
+                      type="button"
                       onClick={() => setForm(f => ({ ...f, useCase: u.id as UseCase }))}
                       className={cn(
-                        "flex flex-col items-center gap-3 p-6 rounded-2xl border transition-all duration-300 group",
+                        "flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border transition-all duration-300 group",
                         form.useCase === u.id 
-                          ? "bg-blue-600/20 border-blue-500/50 text-blue-400 shadow-[0_10px_30px_rgba(59,130,246,0.15)]" 
-                          : "bg-white/[0.02] border-white/5 text-slate-600 hover:border-white/10 hover:bg-white/[0.04]"
+                          ? "bg-blue-600 border-blue-400 text-white shadow-[0_10px_30px_rgba(59,130,246,0.3)] scale-[1.02]" 
+                          : "bg-white/[0.02] border-white/5 text-slate-500 hover:border-white/10 hover:bg-white/[0.04]"
                       )}
                     >
-                      <u.icon className={cn("h-6 w-6 transition-transform group-hover:scale-110", form.useCase === u.id ? "text-blue-400" : "text-slate-700")} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">{u.label}</span>
+                      <u.icon className={cn("h-5 w-5 transition-transform group-hover:scale-110", form.useCase === u.id ? "text-white" : "text-slate-700")} />
+                      <span className="text-[9px] font-black uppercase tracking-widest">{u.label}</span>
                     </button>
                   ))}
                 </div>
@@ -277,34 +327,45 @@ export function SpendForm() {
         {/* Step 2 — Inventory */}
         {step === 'inventory' && (
           <section className="space-y-10 animate-in fade-in slide-in-from-right-8 duration-700">
-            <div className="space-y-2">
+            <div className="space-y-4">
               <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Neural Manifest</h2>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Active subscription assets & resource allocation</p>
+              <div className="flex items-center gap-4">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Active subscription assets & resource allocation</p>
+                <div className="h-px flex-1 bg-white/5" />
+                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 font-black italic uppercase tracking-widest text-[9px] px-4 py-1 rounded-full">
+                  Synced: {form.teamSize} Users
+                </Badge>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {ALL_TOOLS.map((t) => {
                 const isAdded = form.tools.some(f => f.name === t);
+                const Icon = TOOL_ICONS[t];
                 return (
                   <button
                     key={t}
                     type="button"
                     onClick={() => isAdded ? setForm(f => ({ ...f, tools: f.tools.filter(tool => tool.name !== t) })) : addTool(t)}
                     className={cn(
-                      "flex flex-col items-center gap-3 p-6 rounded-[2rem] border transition-all duration-300 group relative overflow-hidden",
+                      "flex flex-col items-center gap-4 p-6 rounded-[2.5rem] border transition-all duration-300 group relative overflow-hidden",
                       isAdded 
-                        ? "bg-purple-600/20 border-purple-500/50 text-purple-400 shadow-[0_10px_30px_rgba(168,85,247,0.15)]" 
-                        : "bg-white/[0.02] border-white/5 text-slate-600 hover:border-white/10 hover:bg-white/[0.04]"
+                        ? "bg-blue-600/20 border-blue-500/50 text-blue-400 shadow-[0_10px_30px_rgba(59,130,246,0.15)]" 
+                        : "bg-white/[0.02] border-white/5 text-slate-600 hover:border-white/10 hover:bg-white/[0.04] hover:scale-[1.02]"
                     )}
                   >
                     <div className={cn(
-                      "h-10 w-10 rounded-xl flex items-center justify-center border transition-colors",
-                      isAdded ? "bg-purple-500/20 border-purple-500/30" : "bg-white/5 border-white/5"
+                      "h-12 w-12 rounded-2xl flex items-center justify-center border transition-all duration-500",
+                      isAdded ? "bg-blue-500/20 border-blue-500/30 rotate-12" : "bg-white/5 border-white/5 group-hover:rotate-6"
                     )}>
-                      {isAdded ? <ShieldCheck className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                      <Icon className={cn("h-6 w-6 transition-transform", isAdded ? "text-blue-400" : "text-slate-700")} />
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-center leading-tight">{TOOL_LABELS[t]}</span>
-                    {isAdded && <div className="absolute top-2 right-2 h-1.5 w-1.5 bg-purple-400 rounded-full animate-pulse" />}
+                    <span className="text-[10px] font-black uppercase tracking-widest text-center leading-tight">{TOOL_LABELS[t]}</span>
+                    {isAdded && (
+                      <div className="absolute top-4 right-4 h-2 w-2 bg-blue-400 rounded-full">
+                        <div className="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-75" />
+                      </div>
+                    )}
                   </button>
                 );
               })}
@@ -383,7 +444,7 @@ export function SpendForm() {
               <div className="space-y-1">
                 <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-500">Autonomous Processing Note</h4>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Executing this audit will transmit data to the OpenRouter neural network for synthesis. No personal PII is stored beyond your corporate identity.
+                  Executing this audit will transmit data to the autonomous neural network for synthesis. No personal PII is stored beyond your corporate identity.
                 </p>
               </div>
             </div>
@@ -404,6 +465,7 @@ export function SpendForm() {
         <div className="flex gap-4">
           {step !== 'context' && (
             <button
+              type="button"
               onClick={prevStep}
               className="h-20 px-8 bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] transition-all flex items-center gap-3 group"
             >
@@ -414,6 +476,7 @@ export function SpendForm() {
 
           {step !== 'review' ? (
             <button
+              type="button"
               onClick={nextStep}
               className="flex-1 h-20 bg-white text-black hover:bg-slate-200 rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-[0_20px_50px_rgba(255,255,255,0.1)] transition-all transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-4 group"
             >
@@ -422,6 +485,7 @@ export function SpendForm() {
             </button>
           ) : (
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={isSubmitting}
               className="flex-1 h-20 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-[0_20px_50px_rgba(59,130,246,0.3)] transition-all transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 overflow-hidden relative"

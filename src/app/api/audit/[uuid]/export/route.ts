@@ -18,12 +18,25 @@ export async function GET(
       .single();
 
     if (error || !data) {
+      console.error('[pdf-export] Audit not found or query error:', error);
       return NextResponse.json({ error: 'Audit not found' }, { status: 404 });
+    }
+
+    console.log('[pdf-export] Found audit data for uuid:', uuid);
+    
+    // Safety check for audit_result format
+    let auditResult = data.audit_result;
+    if (typeof auditResult === 'string') {
+      try {
+        auditResult = JSON.parse(auditResult);
+      } catch (e) {
+        console.error('[pdf-export] Failed to parse audit_result JSON string');
+      }
     }
 
     // 2. Generate PDF using native Node logic (Vercel compatible)
     const pdfBuffer = await generateAuditPDF(
-      data.audit_result,
+      auditResult,
       data.ai_summary,
       data.audit_input?.company || 'Your Company',
       data.audit_input?.email || ''
@@ -33,13 +46,18 @@ export async function GET(
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="SpendLens_Audit_${uuid.slice(0, 8)}.pdf"`,
+        'Content-Disposition': `attachment; filename="Audit_Report_${uuid.slice(0, 8)}.pdf"`,
       },
     });
   } catch (err: any) {
     console.error('[pdf-export] Unhandled error:', err);
     return NextResponse.json(
-      { error: 'Internal server error', message: err.message },
+      { 
+        error: 'Internal server error', 
+        message: err.message || 'Unknown error',
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+        raw: JSON.stringify(err, Object.getOwnPropertyNames(err))
+      },
       { status: 500 }
     );
   }
