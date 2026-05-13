@@ -42,8 +42,8 @@ export async function GET(
       data.audit_input?.email || ''
     );
 
-    // 3. Return PDF response
-    return new NextResponse(pdfBuffer, {
+    // 3. Return PDF response — convert Buffer to Uint8Array for NextResponse BodyInit compatibility
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="Audit_Report_${uuid.slice(0, 8)}.pdf"`,

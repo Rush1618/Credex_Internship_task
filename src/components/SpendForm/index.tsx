@@ -159,7 +159,6 @@ export function SpendForm() {
     if (validateStep(step)) {
       if (step === 'context') setStep('inventory');
       else if (step === 'inventory') setStep('review');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -167,7 +166,6 @@ export function SpendForm() {
     if (step === 'inventory') setStep('context');
     else if (step === 'review') setStep('inventory');
     setError(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async () => {
@@ -270,7 +268,7 @@ export function SpendForm() {
                 <Label htmlFor="teamSize" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Resource Load</Label>
                 <Select
                   value={form.teamSize}
-                  onValueChange={(v: TeamSize) => handleTeamSizeChange(v)}
+                  onValueChange={(v) => handleTeamSizeChange(v as TeamSize)}
                 >
                   <SelectTrigger className="h-16 bg-white/[0.03] border-white/10 text-white rounded-2xl px-6 font-bold text-lg">
                     <SelectValue />

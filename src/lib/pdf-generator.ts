@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit/js/pdfkit.standalone';
-import { AuditResult } from './audit-engine';
+import { AuditResult } from '@/types';
 
 // -- Palette ------------------------------------------------------------------
 const COLORS = {
@@ -54,7 +54,7 @@ export async function generateAuditPDF(
     const chunks: Buffer[] = [];
     
     try {
-      console.log('[pdf-generator] Starting generation for:', result?.companyName);
+      console.log('[pdf-generator] Starting generation for:', companyName);
       const doc = new PDFDocument({
         size: 'A4',
         margins: { top: 30, bottom: 30, left: 40, right: 40 },
