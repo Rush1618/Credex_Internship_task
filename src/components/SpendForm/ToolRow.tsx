@@ -11,7 +11,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { X, Zap, Sparkles, Terminal, GitBranch, Search, Users, DollarSign, Activity } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 const TOOL_LABELS: Record<ToolName, string> = {
   cursor: 'Cursor',
@@ -35,7 +34,7 @@ export function ToolRow({ tool, index, onChange, onRemove }: ToolRowProps) {
   const plans = TOOL_PRICING[tool.name] ?? [];
 
   const update = (field: keyof ToolInput, value: string | number) => {
-    let updatedTool = { ...tool, [field]: value };
+    const updatedTool = { ...tool, [field]: value };
 
     if (field === 'plan' || field === 'seats') {
       const selectedPlan = plans.find(p => p.planId === (field === 'plan' ? value : tool.plan));

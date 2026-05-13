@@ -1,4 +1,5 @@
-require('dotenv').config({ path: '.env.local' });
+import * as dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
 
 async function test() {
   const apiKey = process.env.OPENROUTER_API_KEY;

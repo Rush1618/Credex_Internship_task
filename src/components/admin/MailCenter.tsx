@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, Send, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Mail, Send, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -26,7 +26,7 @@ export function MailCenter() {
       } else {
         setStatus({ error: data.error || 'Connection failed' });
       }
-    } catch (err) {
+    } catch (_err) {
       setStatus({ error: 'Network error' });
     } finally {
       setLoading(false);

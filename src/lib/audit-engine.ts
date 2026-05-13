@@ -17,7 +17,7 @@ export function calculateExpectedSpend(toolName: string, planId: string, seats: 
 // RULE ENGINE: One function per tool — pure, defensible logic
 // ---------------------------------------------------------
 
-export function auditCursor(tool: ToolInput, _teamSize: string, useCase: string): ToolRecommendation {
+export function auditCursor(tool: ToolInput, _teamSize: string, _useCase: string): ToolRecommendation {
   const { plan, monthlySpend, seats } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
@@ -52,7 +52,7 @@ export function auditCursor(tool: ToolInput, _teamSize: string, useCase: string)
     ];
   }
   // Rule: Pro for coding use case — already the right call
-  else if (plan === 'pro' && useCase === 'coding') {
+  else if (plan === 'pro' && _useCase === 'coding') {
     reasoning = ['Cursor Pro is the best-value coding assistant at this price point for your use case.'];
   } else {
     reasoning = ['Your current Cursor configuration is well-aligned with your usage.'];
@@ -73,7 +73,7 @@ export function auditCursor(tool: ToolInput, _teamSize: string, useCase: string)
   };
 }
 
-export function auditGithubCopilot(tool: ToolInput, _teamSize: string, useCase: string): ToolRecommendation {
+export function auditGithubCopilot(tool: ToolInput, _teamSize: string, _useCase: string): ToolRecommendation {
   const { plan, monthlySpend, seats } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
@@ -114,7 +114,7 @@ export function auditGithubCopilot(tool: ToolInput, _teamSize: string, useCase: 
   };
 }
 
-export function auditClaude(tool: ToolInput, _teamSize: string, useCase: string): ToolRecommendation {
+export function auditClaude(tool: ToolInput, _teamSize: string, _useCase: string): ToolRecommendation {
   const { plan, monthlySpend, seats } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
@@ -133,7 +133,7 @@ export function auditClaude(tool: ToolInput, _teamSize: string, useCase: string)
       'You are paying a premium for collaboration features you cannot use.'
     ];
   }
-  else if (plan === 'max' && (useCase === 'writing' || useCase === 'research') && seats === 1) {
+  else if (plan === 'max' && (_useCase === 'writing' || _useCase === 'research') && seats === 1) {
     monthlySavings = 100 - 20;
     recommendedPlan = 'pro';
     recommendedAction = 'Downgrade to Pro';
@@ -174,7 +174,7 @@ export function auditClaude(tool: ToolInput, _teamSize: string, useCase: string)
   };
 }
 
-export function auditChatGPT(tool: ToolInput, _teamSize: string, useCase: string): ToolRecommendation {
+export function auditChatGPT(tool: ToolInput, _teamSize: string, _useCase: string): ToolRecommendation {
   const { plan, monthlySpend, seats } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
@@ -193,7 +193,7 @@ export function auditChatGPT(tool: ToolInput, _teamSize: string, useCase: string
       'Plus provides identical access to GPT-4o and advanced tools.'
     ];
   }
-  else if (plan === 'plus' && useCase === 'coding') {
+  else if (plan === 'plus' && _useCase === 'coding') {
     recommendedAction = 'Consider switching to Cursor Pro';
     reasoning = [
       'For coding-primary use cases, Cursor Pro provides better IDE integration.',
@@ -201,6 +201,7 @@ export function auditChatGPT(tool: ToolInput, _teamSize: string, useCase: string
       'This is an efficiency recommendation rather than a direct cost saving.'
     ];
   }
+  // ... rest of the function remains the same ...
   else if (plan === 'api' && monthlySpend > 200) {
     const credexSaving = monthlySpend * CREDEX_DISCOUNT_ESTIMATE;
     monthlySavings = credexSaving;

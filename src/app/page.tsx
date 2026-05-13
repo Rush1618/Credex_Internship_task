@@ -1,8 +1,7 @@
-import { SpendForm } from '@/components/SpendForm';
 import { SimulatedSavings } from '@/components/SimulatedSavings';
 import ExperienceScene from '@/components/Experience3D';
 import { Footer } from '@/components/shared/Footer';
-import { CheckCircle2, TrendingDown, Zap, Shield, BarChart3, Users } from 'lucide-react';
+import { Zap, Shield, BarChart3, TrendingDown } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Header } from '@/components/shared/Header';

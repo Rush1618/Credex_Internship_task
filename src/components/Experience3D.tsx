@@ -20,8 +20,9 @@ const seededRandom = (s: number) => {
   return x - Math.floor(x);
 };
 
+const symbols = ['$', 'AI', 'INTEL', 'BURN', 'SAVE'];
+
 function CurrencyParticles({ count = 60 }: { count?: number }) {
-  const symbols = ['$', 'AI', 'INTEL', 'BURN', 'SAVE'];
   const particles = useMemo(() => {
     const temp = [];
     for (let i = 0; i < count; i++) {
@@ -175,7 +176,7 @@ function Line({ start, end }: { start: THREE.Vector3, end: THREE.Vector3 }) {
   });
 
   return (
-    <line ref={ref as any}>
+    <line ref={ref!}>
       <bufferGeometry attach="geometry" onUpdate={self => self.setFromPoints(points)} />
       <lineBasicMaterial attach="material" color="#3b82f6" transparent opacity={0.05} />
     </line>

@@ -3,7 +3,7 @@
 import { ToolRecommendation } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, CheckCircle2, TrendingDown, ShieldCheck, Zap } from 'lucide-react';
+import { ArrowRight, TrendingDown, ShieldCheck, Zap } from 'lucide-react';
 
 interface RecommendationCardProps {
   recommendation: ToolRecommendation;

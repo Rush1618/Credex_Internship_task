@@ -28,7 +28,7 @@ export default async function AdminPage() {
   const supabaseAdmin = getSupabaseClient(true);
 
   // Fetch recent leads
-  const { data: leads, error: leadError } = await supabaseAdmin
+  const { data: leads } = await supabaseAdmin
     .from('leads')
     .select('*')
     .order('created_at', { ascending: false })
@@ -99,7 +99,7 @@ export default async function AdminPage() {
             </TableHeader>
             <TableBody>
               {leads && leads.length > 0 ? (
-                leads.map((lead: any) => (
+                leads.map((lead: { id: string; created_at: string; company_name: string; role: string; email: string; is_high_savings: boolean; audit_uuid: string }) => (
                   <TableRow key={lead.id} className="border-white/10 hover:bg-white/5 transition-colors group">
                     <TableCell className="font-mono text-[10px] text-slate-500">
                       <div className="flex items-center gap-1.5">
@@ -167,7 +167,7 @@ export default async function AdminPage() {
             </TableHeader>
             <TableBody>
               {audits && audits.length > 0 ? (
-                audits.map((audit: any) => (
+                audits.map((audit: { id: string; created_at: string; uuid: string; total_monthly_savings: number; total_annual_savings: number }) => (
                   <TableRow key={audit.id} className="border-white/10 hover:bg-white/5 transition-colors group">
                     <TableCell className="font-mono text-[10px] text-slate-500">
                       {new Date(audit.created_at).toLocaleString()}
@@ -223,7 +223,7 @@ export default async function AdminPage() {
             </TableHeader>
             <TableBody>
               {messages && messages.length > 0 ? (
-                messages.map((msg: any) => (
+                messages.map((msg: { id: string; created_at: string; name: string; email: string; subject: string; message: string }) => (
                   <TableRow key={msg.id} className="border-white/10 hover:bg-white/5 transition-colors">
                     <TableCell className="font-mono text-[10px] text-slate-500">
                       {new Date(msg.created_at).toLocaleString()}
@@ -236,7 +236,7 @@ export default async function AdminPage() {
                       <Badge variant="secondary" className="bg-white/5 text-[10px] uppercase">{msg.subject}</Badge>
                     </TableCell>
                     <TableCell className="max-w-xs truncate text-xs text-slate-400 italic">
-                      "{msg.message}"
+                      &quot;{msg.message}&quot;
                     </TableCell>
                   </TableRow>
                 ))

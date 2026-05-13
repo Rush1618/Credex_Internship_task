@@ -49,14 +49,15 @@ export async function GET(
         'Content-Disposition': `attachment; filename="Audit_Report_${uuid.slice(0, 8)}.pdf"`,
       },
     });
-  } catch (err: any) {
-    console.error('[pdf-export] Unhandled error:', err);
+  } catch (err) {
+    const error = err as Error;
+    console.error('[pdf-export] Unhandled error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error', 
-        message: err.message || 'Unknown error',
-        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-        raw: JSON.stringify(err, Object.getOwnPropertyNames(err))
+        message: error.message || 'Unknown error',
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        raw: JSON.stringify(error, Object.getOwnPropertyNames(error))
       },
       { status: 500 }
     );

@@ -64,9 +64,9 @@ export default async function AuditPage({ params }: PageProps) {
 
   const result = data.audit_result as AuditResult;
   const aiSummary = (data.ai_summary as string | null) ?? undefined;
-  const auditInput = data.audit_input as any;
-  const initialEmail = auditInput?.email || '';
-  const initialCompanyName = auditInput?.company || '';
+  const auditInput = data.audit_input as Record<string, unknown> | null;
+  const initialEmail = typeof auditInput?.email === 'string' ? auditInput.email : '';
+  const initialCompanyName = typeof auditInput?.company === 'string' ? auditInput.company : '';
 
   return (
     <div className="min-h-screen flex flex-col">

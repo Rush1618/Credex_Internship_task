@@ -8,8 +8,7 @@ import { SummaryStat } from './SummaryStat';
 export { RecommendationCard, SummaryStat };
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { TrendingDown, Calendar, AlertTriangle, CheckCircle2, ExternalLink, Sparkles, Download, Share2, ArrowRight, Zap } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { TrendingDown, Calendar, AlertTriangle, CheckCircle2, Sparkles, Download, Share2, ArrowRight, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface AuditResultsProps {
@@ -23,7 +22,8 @@ export function AuditResults({ uuid, result, aiSummary }: AuditResultsProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const {
@@ -51,14 +51,14 @@ export function AuditResults({ uuid, result, aiSummary }: AuditResultsProps) {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } catch (err: any) {
-      alert(`Failed to generate PDF: ${err.message || 'Unknown error'}.`);
+    } catch (err) {
+      const error = err as Error;
+      alert(`Failed to generate PDF: ${error.message || 'Unknown error'}.`);
     } finally {
       setIsExporting(false);
     }
   };
 
-  const isOptimalSpend = totalMonthlySavings < 100 && recommendations.every((r) => r.isOptimal);
   const retainList = recommendations.filter((r) => r.isOptimal || r.savingsType === 'optimization');
   const actionList = recommendations.filter((r) => !r.isOptimal && r.savingsType !== 'optimization');
 
