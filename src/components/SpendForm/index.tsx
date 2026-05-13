@@ -183,7 +183,7 @@ export function SpendForm() {
       const { uuid } = await res.json();
       clearFormDraft();
       router.push(`/audit/${uuid}`);
-    } catch (_err) {
+    } catch {
       setError('Neural link synchronization failed. Re-attempting...');
       setIsSubmitting(false);
     }

@@ -26,7 +26,7 @@ export function MailCenter() {
       } else {
         setStatus({ error: data.error || 'Connection failed' });
       }
-    } catch (_err) {
+    } catch {
       setStatus({ error: 'Network error' });
     } finally {
       setLoading(false);

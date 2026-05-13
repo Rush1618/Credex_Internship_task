@@ -3,7 +3,7 @@ import {
   auditCursor,
   auditClaude,
   auditChatGPT,
-  auditAPISpend,
+
   detectRedundantTools,
 } from '@/lib/audit-engine';
 import { AuditInput, ToolInput } from '@/types';

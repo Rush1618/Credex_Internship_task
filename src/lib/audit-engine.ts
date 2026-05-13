@@ -73,7 +73,7 @@ export function auditCursor(tool: ToolInput, _teamSize: string, _useCase: string
   };
 }
 
-export function auditGithubCopilot(tool: ToolInput, _teamSize: string, _useCase: string): ToolRecommendation {
+export function auditGithubCopilot(tool: ToolInput): ToolRecommendation {
   const { plan, monthlySpend, seats } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
@@ -390,7 +390,7 @@ export function runAudit(input: AuditInput): AuditResult {
         rec = auditCursor(tool, teamSize, useCase);
         break;
       case 'github-copilot':
-        rec = auditGithubCopilot(tool, teamSize, useCase);
+        rec = auditGithubCopilot(tool);
         break;
       case 'claude':
         rec = auditClaude(tool, teamSize, useCase);

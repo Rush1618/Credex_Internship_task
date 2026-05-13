@@ -29,7 +29,7 @@ export async function GET(
     if (typeof auditResult === 'string') {
       try {
         auditResult = JSON.parse(auditResult);
-      } catch (e) {
+      } catch {
         console.error('[pdf-export] Failed to parse audit_result JSON string');
       }
     }

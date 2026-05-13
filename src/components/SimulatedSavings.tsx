@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { TrendingDown, ShieldAlert } from 'lucide-react'
+import { TrendingDown } from 'lucide-react'
 
 const SAVINGS_EXAMPLES = [
   { tool: 'Cursor', amount: 240, action: 'Asset Optimization' },

@@ -8,7 +8,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function testInsert() {
   console.log('Testing public insert into "audits"...');
   
-  const { data, error } = await supabase.from('audits').insert({
+  const { error } = await supabase.from('audits').insert({
     uuid: '00000000-0000-0000-0000-000000000000',
     audit_input: { test: true },
     audit_result: { totalMonthlySavings: 100, recommendations: [], redundancyWarnings: [] },

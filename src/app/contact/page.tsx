@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Header } from '@/components/shared/Header';
 import { Footer } from '@/components/shared/Footer';
 import { Mail, Globe, MessageSquare, Shield, Terminal, Zap, SendHorizonal, CheckCircle2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';

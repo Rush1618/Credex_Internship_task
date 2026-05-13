@@ -9,7 +9,7 @@ async function testConnection() {
   console.log('Testing Supabase connection...');
   
   // Try to fetch audits
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('audits')
     .select('id')
     .limit(1);
