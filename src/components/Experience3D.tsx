@@ -14,20 +14,33 @@ import {
 } from '@react-three/drei';
 import * as THREE from 'three';
 
+// Deterministic random for purity
+const seededRandom = (s: number) => {
+  const x = Math.sin(s) * 10000;
+  return x - Math.floor(x);
+};
+
 function CurrencyParticles({ count = 60 }: { count?: number }) {
   const symbols = ['$', 'AI', 'INTEL', 'BURN', 'SAVE'];
   const particles = useMemo(() => {
     const temp = [];
     for (let i = 0; i < count; i++) {
+      const r1 = seededRandom(i * 13.13);
+      const r2 = seededRandom(i * 17.17);
+      const r3 = seededRandom(i * 19.19);
+      const r4 = seededRandom(i * 23.23);
+      const r5 = seededRandom(i * 29.29);
+      const r6 = seededRandom(i * 31.31);
+
       temp.push({
         position: [
-          (Math.random() - 0.5) * 25,
-          (Math.random() - 0.5) * 25,
-          (Math.random() - 0.5) * 25
+          (r1 - 0.5) * 25,
+          (r2 - 0.5) * 25,
+          (r3 - 0.5) * 25
         ] as [number, number, number],
-        speed: Math.random() * 0.4 + 0.1,
-        symbol: symbols[Math.floor(Math.random() * symbols.length)],
-        rotation: [Math.random() * Math.PI, Math.random() * Math.PI, 0] as [number, number, number]
+        speed: r4 * 0.4 + 0.1,
+        symbol: symbols[Math.floor(r5 * symbols.length)],
+        rotation: [r6 * Math.PI, r1 * Math.PI, 0] as [number, number, number]
       });
     }
     return temp;
@@ -129,8 +142,15 @@ function ConnectionLines({ count = 40 }: { count?: number }) {
   const lines = useMemo(() => {
     const temp = [];
     for (let i = 0; i < count; i++) {
-      const p1 = new THREE.Vector3((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
-      const p2 = new THREE.Vector3((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
+      const r1 = seededRandom(i * 37.37);
+      const r2 = seededRandom(i * 41.41);
+      const r3 = seededRandom(i * 43.43);
+      const r4 = seededRandom(i * 47.47);
+      const r5 = seededRandom(i * 53.53);
+      const r6 = seededRandom(i * 59.59);
+      
+      const p1 = new THREE.Vector3((r1 - 0.5) * 20, (r2 - 0.5) * 20, (r3 - 0.5) * 20);
+      const p2 = new THREE.Vector3((r4 - 0.5) * 20, (r5 - 0.5) * 20, (r6 - 0.5) * 20);
       temp.push({ p1, p2 });
     }
     return temp;

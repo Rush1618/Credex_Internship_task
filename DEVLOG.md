@@ -195,6 +195,7 @@
 - **Documentation Sanitization:** Audited and removed all absolute local filesystem paths (e.g., `file:///C:/...`) from `README.md` and project artifacts. Replaced them with relative links to ensure documentation remains functional for external reviewers.
 - **Walkthrough Finalization:** Incorporated the final 1-minute product walkthrough video directly into the `README.md` and `walkthrough.md` artifacts.
 - **Production Readiness Check:** Verified all environment variables (`MAILERSEND_API_KEY`, `OPENROUTER_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) are correctly referenced for Vercel deployment.
+- **Linting & Code Stability:** Resolved the final batch of 40+ ESLint warnings and errors. Fixed React 19 purity issues in `Experience3D.tsx` using seeded randoms, addressed hydration/cascading re-render warnings in `ReportActions.tsx` and `ThemeToggle.tsx` via microtask scheduling, and purged all unused imports and `any` type annotations across the `src/` directory.
 - **Database Final Pass:** Confirmed `schema.sql` reflects the hardened state with performance indexes and RLS policies correctly documented.
 
 **What I learned:**

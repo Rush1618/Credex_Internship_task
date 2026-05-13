@@ -6,12 +6,11 @@ import { AuditInput, ToolInput, ToolName, UseCase, TeamSize } from '@/types';
 import { runAudit } from '@/lib/audit-engine';
 import { clearFormDraft, useFormPersist } from './FormPersist';
 import { ToolRow } from './ToolRow';
-import { Plus, Zap, ChevronRight, ChevronLeft, ShieldCheck, Cpu, Database, LayoutPanelLeft, LineChart, Globe, Search, Sparkles, Terminal, GitBranch } from 'lucide-react';
+import { Zap, ChevronRight, ChevronLeft, ShieldCheck, Cpu, Database, LayoutPanelLeft, LineChart, Globe, Search, Sparkles, Terminal, GitBranch, LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { TOOL_PRICING } from '@/lib/pricing-data';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const ALL_TOOLS: ToolName[] = [
@@ -36,7 +35,7 @@ const TOOL_LABELS: Record<ToolName, string> = {
   windsurf: 'Windsurf',
 };
 
-const TOOL_ICONS: Record<ToolName, any> = {
+const TOOL_ICONS: Record<ToolName, LucideIcon> = {
   cursor: Terminal,
   'github-copilot': GitBranch,
   claude: Sparkles,
@@ -184,15 +183,12 @@ export function SpendForm() {
       const { uuid } = await res.json();
       clearFormDraft();
       router.push(`/audit/${uuid}`);
-    } catch (err) {
+    } catch (_err) {
       setError('Neural link synchronization failed. Re-attempting...');
       setIsSubmitting(false);
     }
   };
 
-  const availableTools = ALL_TOOLS.filter(
-    (t) => !form.tools.find((f) => f.name === t)
-  );
 
   const totalSpend = useMemo(() => 
     form.tools.reduce((acc, t) => acc + (t.monthlySpend || 0), 0),
@@ -208,7 +204,7 @@ export function SpendForm() {
           { id: 'context', icon: Globe, label: 'Context' },
           { id: 'inventory', icon: Database, label: 'Inventory' },
           { id: 'review', icon: ShieldCheck, label: 'Review' },
-        ].map((s, i) => {
+        ].map((s) => {
           const isActive = step === s.id;
           const isDone = (step === 'inventory' && s.id === 'context') || (step === 'review' && (s.id === 'context' || s.id === 'inventory'));
           return (

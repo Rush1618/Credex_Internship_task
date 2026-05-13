@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, SendHorizonal, ShieldCheck, Zap, AlertCircle } from 'lucide-react';
+import { Mail, SendHorizonal, ShieldCheck, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -73,8 +73,8 @@ export function LeadCapture({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'System error');
       setSubmitted(true);
-    } catch (err: any) {
-      setServerError(err.message || 'System error. Please retry.');
+    } catch (err: unknown) {
+      setServerError(err instanceof Error ? err.message : 'System error. Please retry.');
     }
   };
 

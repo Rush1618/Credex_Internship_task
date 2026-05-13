@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -6,7 +6,7 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 console.log('DEBUG: Supabase URL is:', supabaseUrl);
 
-export const getSupabaseClient = (useServiceRole = false) => {
+export const getSupabaseClient = (useServiceRole = false): SupabaseClient => {
   let key = useServiceRole ? supabaseServiceRoleKey : supabaseAnonKey;
   
   // Fallback to anon key if service role is placeholder
@@ -25,7 +25,7 @@ export const getSupabaseClient = (useServiceRole = false) => {
         }),
         insert: () => ({ data: null, error: null }),
       }),
-    } as any;
+    } as unknown as SupabaseClient;
   }
 
   try {
@@ -41,6 +41,6 @@ export const getSupabaseClient = (useServiceRole = false) => {
         }),
         insert: () => ({ data: null, error: null }),
       }),
-    } as any;
+    } as unknown as SupabaseClient;
   }
 };

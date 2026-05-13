@@ -17,7 +17,7 @@ export function calculateExpectedSpend(toolName: string, planId: string, seats: 
 // RULE ENGINE: One function per tool — pure, defensible logic
 // ---------------------------------------------------------
 
-export function auditCursor(tool: ToolInput, teamSize: string, useCase: string): ToolRecommendation {
+export function auditCursor(tool: ToolInput, _teamSize: string, useCase: string): ToolRecommendation {
   const { plan, monthlySpend, seats } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
@@ -73,7 +73,7 @@ export function auditCursor(tool: ToolInput, teamSize: string, useCase: string):
   };
 }
 
-export function auditGithubCopilot(tool: ToolInput, teamSize: string, useCase: string): ToolRecommendation {
+export function auditGithubCopilot(tool: ToolInput, _teamSize: string, useCase: string): ToolRecommendation {
   const { plan, monthlySpend, seats } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
@@ -114,7 +114,7 @@ export function auditGithubCopilot(tool: ToolInput, teamSize: string, useCase: s
   };
 }
 
-export function auditClaude(tool: ToolInput, teamSize: string, useCase: string): ToolRecommendation {
+export function auditClaude(tool: ToolInput, _teamSize: string, useCase: string): ToolRecommendation {
   const { plan, monthlySpend, seats } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
@@ -174,7 +174,7 @@ export function auditClaude(tool: ToolInput, teamSize: string, useCase: string):
   };
 }
 
-export function auditChatGPT(tool: ToolInput, teamSize: string, useCase: string): ToolRecommendation {
+export function auditChatGPT(tool: ToolInput, _teamSize: string, useCase: string): ToolRecommendation {
   const { plan, monthlySpend, seats } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
@@ -275,7 +275,7 @@ export function auditAPISpend(tool: ToolInput): ToolRecommendation {
 }
 
 export function auditGemini(tool: ToolInput, useCase: string): ToolRecommendation {
-  const { plan, monthlySpend, seats } = tool;
+  const { plan, monthlySpend } = tool;
   let recommendedPlan = plan;
   let monthlySavings = 0;
   let reasoning: string[] = [];
@@ -430,8 +430,6 @@ export function runAudit(input: AuditInput): AuditResult {
   let status: 'OPTIMAL' | 'EFFICIENT' | 'BLOATED' = 'EFFICIENT';
   let comparisonText = 'Your spend is typical for this team size.';
 
-  const avgPerSeat = totalMonthlySpend / (parseInt(input.teamSize.split('-')[0]) || 1);
-  
   if (totalMonthlySavings > (totalMonthlySpend * 0.3)) {
     percentile = 40;
     status = 'BLOATED';

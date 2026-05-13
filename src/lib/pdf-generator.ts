@@ -34,15 +34,6 @@ const TOOL_MAP: Record<string, string> = {
   'windsurf': 'Windsurf',
 };
 
-function getToolLabel(name: string, plan?: string) {
-  const base = TOOL_MAP[name] || name.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-  if (!plan) return base;
-  if (plan.toLowerCase() === 'api' && base.toLowerCase().endsWith('api')) {
-    return base;
-  }
-  const planLbl = plan.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-  return `${base} ${planLbl}`;
-}
 
 export async function generateAuditPDF(
   result: AuditResult,
@@ -95,7 +86,6 @@ export async function generateAuditPDF(
     y += 15;
 
     // -- AI Analysis & Confidence ---------------------------------------------
-    const rowH = 70;
     const aiW = IW * 0.65;
     const gap = IW * 0.05;
     const confW = IW - aiW - gap;
